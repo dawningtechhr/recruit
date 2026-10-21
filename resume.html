@@ -78,6 +78,8 @@ button{font-family:'Noto Sans TC',sans-serif;cursor:pointer;border:none;border-r
 </head>
 <body>
 <div class="toast" id="toast"></div>
+<!-- 機器人陷阱：一般使用者看不到也不會填；被填寫的送件會被伺服器丟棄 -->
+<input type="text" id="hp" name="contact_note" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0">
 
 <!-- INTRO -->
 <div class="page active" id="pg-intro">
@@ -133,7 +135,7 @@ var DEMO = API_URL.indexOf('YOUR_') >= 0;   // 尚未設定網址時為示範模
 var DRAFT_KEY = 'dx_resume_draft_v1';
 
 var $ = function (s) { return document.querySelector(s); };
-var form, submitId = null, dirty = false, timer = null, submitting = false;
+var form, submitId = null, dirty = false, timer = null, submitting = false, t0 = Date.now();   // t0：開始填寫時間（用於偵測機器人）
 
 /* ═══════ 表單產生 ═══════ */
 function ctl(name, f) {
@@ -227,7 +229,7 @@ function setStt(t, ok) { var e = $('#stt'); e.textContent = t; e.className = 'st
 function saveDraft(manual) {
   clearTimeout(timer);
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ id: submitId, ts: Date.now(), data: collect() }));
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ id: submitId, ts: Date.now(), t0: t0, data: collect() }));
     dirty = false;
     setStt('草稿已暫存 ' + new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }), true);
     if (manual) toast('草稿已暫存在此瀏覽器', 'success');
@@ -275,10 +277,10 @@ function exists() { return jsonp({ action: 'checkResume', id: submitId }, 12000)
 
 async function transmit(data) {
   var photo = data.photo || ''; delete data.photo;
-  var body = JSON.stringify({ action: 'saveResume', id: submitId, rec: RS.toRec(data), photo: photo });
+  var body = JSON.stringify({ action: 'saveResume', id: submitId, rec: RS.toRec(data), photo: photo, hp: ($('#hp') || {}).value || '', elapsed: Math.round((Date.now() - t0) / 1000) });
   if (DEMO) {            // 示範模式：寫入本機示範資料，可在示範後台看到
     await wait(600);
-    if (window.DemoAPI) DemoAPI.route({ action: 'saveResume', id: submitId, rec: RS.toRec(data), photo: photo });
+    if (window.DemoAPI) DemoAPI.route({ action: 'saveResume', id: submitId, rec: RS.toRec(data), photo: photo, elapsed: 999 });
     return true;
   }
   try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body }); }
@@ -341,6 +343,7 @@ var CONSENT = RS.consentHTML();       // 個資告知事項全文（定義在 re
   var draft = null;
   try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
   submitId = (draft && draft.id) || newId();
+  if (draft && draft.t0) t0 = draft.t0;
   if (draft && draft.data) {
     fill(draft.data);
     $('#notice').innerHTML = '<div class="banner info">已為您還原上次未送出的草稿。 <a style="cursor:pointer;text-decoration:underline" onclick="clearDraft()">清除草稿重新開始</a></div>';

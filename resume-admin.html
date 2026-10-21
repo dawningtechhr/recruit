@@ -6,8 +6,8 @@
 <title>個人資料管理後台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 
 :root{
@@ -261,7 +261,7 @@ html.embed .nav-item[data-standalone]{display:none!important}
     <div class="modal-body" id="report-print-area"></div>
     <div class="modal-foot no-print">
       <button class="btn-secondary" onclick="closeModal('modal-report')">關閉</button>
-      <button class="btn-secondary" onclick="window.print()">🖨 列印</button>
+      <button class="btn-secondary" onclick="printReport()">🖨 列印</button>
       <button class="btn-secondary" id="btn-pdf" onclick="downloadPDF(currentRec)">⬇ 下載 PDF</button>
       <button class="btn-primary" id="btn-word" onclick="downloadWord(currentRec)">⬇ 下載 Word</button>
     </div>
@@ -288,13 +288,11 @@ async function api(payload) {
     if (dr.status === 'error') { if (dr.message === 'SESSION_EXPIRED') sessionExpired(); throw new Error(dr.message); }
     return dr;
   }
-  var url = API_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload)) + '&callback=cb_' + Date.now() + '&_t=' + Date.now();
-  var resp = await fetch(url, { method: 'GET', redirect: 'follow' });
+  // 以 POST 傳送（帳密與 token 放在內容裡，不會出現在網址、瀏覽器歷史或伺服器存取紀錄）
+  var resp = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow' });
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
-  var text = await resp.text();
-  var m = text.match(/^[^(]+\((.+)\)\s*;?\s*$/s);
-  if (!m) throw new Error('回應格式錯誤：' + text.substring(0, 80));
-  var data = JSON.parse(m[1]);
+  var text = await resp.text(), data;
+  try { data = JSON.parse(text); } catch (e) { throw new Error('回應格式錯誤：' + text.substring(0, 80)); }
   if (data.status === 'error') { if (data.message === 'SESSION_EXPIRED') sessionExpired(); throw new Error(data.message); }
   return data;
 }
@@ -419,9 +417,11 @@ async function getPhoto(r) {
   var x = await api({ action: 'getPhoto', id: r.id });
   photoCache[r.id] = x.photo || ''; return photoCache[r.id];
 }
+function track(event, id) { if (token) api({ action: 'logEvent', event: event, id: id }).catch(function () {}); }   // 回報操作紀錄（失敗不影響使用）
+function printReport() { if (currentRec) track('print', currentRec.id); window.print(); }
 async function openReport(id) {
   var r = allRecords.filter(function (x) { return x.id === id; })[0]; if (!r) return;
-  currentRec = r;
+  currentRec = r; track('open_record', r.id);
   $('modal-title').textContent = '個人資料 — ' + r.name + '（' + r.job + '）';
   $('report-print-area').innerHTML = '<p style="color:var(--ink3)">載入中…</p>';
   openModal('modal-report');
@@ -472,6 +472,7 @@ function buildWord(r, photo) {
 }
 async function downloadWord(r) {
   if (!r) return;
+  track('download_word', r.id);
   var btn = $('btn-word'); if (btn) btn.disabled = true;
   try {
     var photo = ''; try { photo = await getPhoto(r); } catch (e) {}
@@ -488,6 +489,7 @@ async function downloadWord(r) {
 /* ═══════ 下載 PDF（A4、多頁；換頁盡量落在表格列與段落之間，避免切斷文字）═══════ */
 async function downloadPDF(r) {
   if (!r) return;
+  track('download_pdf', r.id);
   if (!window.html2canvas || !window.jspdf) { showToast('PDF 元件載入失敗，請確認網路連線後重新整理頁面', 'error'); return; }
   var btn = $('btn-pdf'); if (btn) { btn.disabled = true; btn.textContent = '產生 PDF 中…'; }
   var holder = null;

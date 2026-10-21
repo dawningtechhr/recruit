@@ -225,6 +225,15 @@ html,body{height:100%}
   </div>
 
   <div class="admin-main frames" id="main">
+    <div id="pw-banner" style="display:none;background:#fff4e0;border-bottom:1px solid #f0cf8d;padding:10px 20px;font-size:14px;color:#7a5c00">⚠ 您的密碼不符合安全規定（或仍是系統給的初始密碼），請立即 <a style="color:#c9540f;cursor:pointer;text-decoration:underline;font-weight:500" onclick="openMyAccount()">修改密碼</a>。</div>
+    <div class="tab-content" id="tab-audit" style="display:none;overflow-y:auto;flex:1;max-width:none">
+      <div style="max-width:1100px">
+        <div class="page-title">操作紀錄</div>
+        <div class="page-sub">最近 500 筆：登入、查看、下載、刪除、帳號異動（僅超級管理員可見）。紀錄也保存在試算表的 AuditLog 工作表。</div>
+        <div class="table-wrap"><div class="table-head"><h3>操作紀錄</h3><button class="btn-secondary btn-sm" onclick="loadAudit()">🔄 重新整理</button></div>
+          <table><thead><tr><th>時間</th><th>帳號</th><th>動作</th><th>對象</th><th>說明</th></tr></thead><tbody id="audit-body"></tbody></table></div>
+      </div>
+    </div>
     <div class="tab-content" id="tab-admins" style="display:none;overflow-y:auto;flex:1;max-width:none">
       <div style="max-width:1000px">
         <div class="page-title">管理員設定</div>
@@ -244,7 +253,7 @@ html,body{height:100%}
       <input type="hidden" id="adm-row">
       <div class="form-group"><label>姓名 *</label><input type="text" id="adm-name"></div>
       <div class="form-group"><label>帳號 *</label><input type="text" id="adm-acc" autocomplete="off"></div>
-      <div class="form-group"><label id="adm-pw-lbl">密碼 *</label><input type="password" id="adm-pw" autocomplete="new-password"></div>
+      <div class="form-group"><label id="adm-pw-lbl">密碼 *</label><input type="password" id="adm-pw" autocomplete="new-password"><div style="font-size:12px;color:var(--ink3);margin-top:4px">至少 10 個字元，需同時包含英文字母與數字，且不可包含帳號</div></div>
       <div class="form-group"><label>角色</label><select id="adm-role"><option value="admin">管理員</option><option value="super">超級管理員</option></select></div>
       <div class="form-group"><label>Email（接收個人資料提交通知）</label><input type="text" id="adm-email"></div>
     </div>
@@ -270,6 +279,9 @@ var MODULES = [
 var $ = function (s) { return document.getElementById(s); };
 var currentAdmin = null, token = '', allAdmins = [], frames = {}, activeId = null;
 var SESS_KEY = 'dx_hr_session';
+// 內嵌的後台頁面放進沙盒（與本頁隔離），即使其中一個頁面被植入惡意程式，也讀不到本頁的登入資訊。
+// 若某個後台分頁一直顯示「無法載入」，可把這個值改成 false 再試。
+var SANDBOX_FRAMES = true;
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function showScreen(id) { document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); }); $(id).classList.add('active'); }
@@ -288,13 +300,11 @@ async function api(payload) {
     if (dr.status === 'error') { if (dr.message === 'SESSION_EXPIRED') expired(); throw new Error(dr.message); }
     return dr;
   }
-  var url = API_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload)) + '&callback=cb_' + Date.now() + '&_t=' + Date.now();
-  var resp = await fetch(url, { method: 'GET', redirect: 'follow' });
+  // 以 POST 傳送（帳密與 token 放在內容裡，不會出現在網址、瀏覽器歷史或伺服器存取紀錄）
+  var resp = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow' });
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
-  var text = await resp.text();
-  var m = text.match(/^[^(]+\((.+)\)\s*;?\s*$/s);
-  if (!m) throw new Error('回應格式錯誤：' + text.substring(0, 80));
-  var data = JSON.parse(m[1]);
+  var text = await resp.text(), data;
+  try { data = JSON.parse(text); } catch (e) { throw new Error('回應格式錯誤：' + text.substring(0, 80)); }
   if (data.status === 'error') { if (data.message === 'SESSION_EXPIRED') { expired(); } throw new Error(data.message); }
   return data;
 }
@@ -318,7 +328,11 @@ async function doLogin() {
   setLoading(false);
 }
 function doLogout() {
-  currentAdmin = null; token = ''; activeId = null;
+  if (token) {      // 通知伺服器讓 token 立即失效（逾時登出時 token 已失效，失敗無妨）
+    if (DEMO_MODE) DemoAPI.route({ action: 'logout', token: token });
+    else { try { fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'logout', token: token }) }).catch(function () {}); } catch (e) {} }
+  }
+  currentAdmin = null; token = ''; activeId = null; hidePwBanner();
   try { sessionStorage.removeItem(SESS_KEY); } catch (e) {}
   Object.keys(frames).forEach(function (k) { var b = frames[k].box; if (b.parentNode) b.parentNode.removeChild(b); });
   frames = {};
@@ -331,9 +345,11 @@ function enter(admin, tok) {
   $('su-role').textContent = admin.role === 'super' ? '超級管理員' : '管理員';
   $('nav').innerHTML = '<div class="nav-sep">招募與評測</div>' +
     MODULES.map(function (m) { return '<div class="nav-item" data-id="' + m.id + '" onclick="openModule(\'' + m.id + '\')"><span class="ni">' + m.icon + '</span><span class="t">' + m.name + '</span></div>'; }).join('') +
-    '<div class="nav-sep">系統</div><div class="nav-item" data-id="admins" onclick="openModule(\'admins\')"><span class="ni">👥</span><span class="t">管理員設定</span></div>';
+    '<div class="nav-sep">系統</div><div class="nav-item" data-id="admins" onclick="openModule(\'admins\')"><span class="ni">👥</span><span class="t">管理員設定</span></div>' +
+    (admin.role === 'super' ? '<div class="nav-item" data-id="audit" onclick="openModule(\'audit\')"><span class="ni">🧾</span><span class="t">操作紀錄</span></div>' : '');
   showScreen('s-admin');
   openModule(MODULES[0].id);
+  if (admin.mustChange) { showPwBanner(); setTimeout(openMyAccount, 500); } else hidePwBanner();
 }
 
 /* ═══════════════ 模組切換 ═══════════════ */
@@ -341,30 +357,43 @@ function openModule(id) {
   activeId = id;
   document.querySelectorAll('#nav .nav-item').forEach(function (n) { n.classList.toggle('active', n.getAttribute('data-id') === id); });
   document.querySelectorAll('.frame-box').forEach(function (b) { b.classList.remove('active'); });
-  $('tab-admins').style.display = 'none';
+  $('tab-admins').style.display = 'none'; $('tab-audit').style.display = 'none';
   if (id === 'admins') { $('tab-admins').style.display = 'block'; loadAdmins(); return; }
+  if (id === 'audit') { $('tab-audit').style.display = 'block'; loadAudit(); return; }
   var m = MODULES.filter(function (x) { return x.id === id; })[0];
   if (!frames[id]) {
     var box = document.createElement('div'); box.className = 'frame-box';
     var f = document.createElement('iframe');
     f.src = encodeURI(m.url) + (m.url.indexOf('?') >= 0 ? '&' : '?') + 'embed=1';
     f.title = m.name;
+    if (SANDBOX_FRAMES && !DEMO_MODE) f.setAttribute('sandbox', 'allow-scripts allow-modals allow-downloads allow-forms');   // 與本頁隔離：內嵌頁面即使被植入惡意程式，也讀不到本頁的登入資訊
     f.addEventListener('load', function () { sendAdmin(f); });
     box.appendChild(f); $('main').appendChild(box);
-    frames[id] = { box: box, frame: f };
+    frames[id] = { box: box, frame: f, ready: false };
+    setTimeout(function () {      // 一段時間沒有回應就提示（可能是網址錯誤或沙盒不相容）
+      if (frames[id] && !frames[id].ready && !box.querySelector('.fail')) {
+        var n = document.createElement('div'); n.className = 'fail';
+        n.style.cssText = 'position:absolute;left:0;right:0;top:40%;margin:0 auto;max-width:460px;background:#fff;border:1px solid var(--paper3);border-radius:8px;padding:18px 22px;text-align:center;color:var(--ink2);font-size:14px;line-height:1.8;box-shadow:0 4px 18px rgba(0,0,0,.08)';
+        n.innerHTML = '<b>「' + m.name + '」後台尚未載入完成</b><br>請確認 MODULES 中的網址正確。若網址無誤仍無法顯示，請把本檔 SANDBOX_FRAMES 改為 false。<br><a style="color:var(--accent);cursor:pointer" onclick="this.parentNode.remove()">關閉提示</a>';
+        box.style.position = 'relative'; box.appendChild(n);
+      }
+    }, 8000);
   }
   frames[id].box.classList.add('active');
 }
 function sendAdmin(f) {
   if (!currentAdmin) return;
-  try { f.contentWindow.postMessage({ type: 'dx-admin', admin: currentAdmin, token: token }, '*'); } catch (e) {}
+  var id = Object.keys(frames).filter(function (k) { return frames[k].frame === f; })[0];
+  var msg = { type: 'dx-admin', admin: currentAdmin };
+  if (id === 'resume') msg.token = token;       // 只有新的個人資料後台需要 token；三個舊測驗後台不需要，所以不給
+  try { f.contentWindow.postMessage(msg, '*'); } catch (e) {}
 }
 window.addEventListener('message', function (e) {
   if (!e.data || !e.data.type) return;
   var f = null;
   Object.keys(frames).forEach(function (k) { if (frames[k].frame.contentWindow === e.source) f = frames[k].frame; });
   if (!f) return;
-  if (e.data.type === 'dx-ready') sendAdmin(f);
+  if (e.data.type === 'dx-ready') { Object.keys(frames).forEach(function (k) { if (frames[k].frame === f) { frames[k].ready = true; var x = frames[k].box.querySelector('.fail'); if (x) x.remove(); } }); sendAdmin(f); }
   if (e.data.type === 'dx-expired') expired();
 });
 
@@ -409,13 +438,23 @@ async function saveAdmin() {
   var row = $('adm-row').value, name = $('adm-name').value.trim(), acc = $('adm-acc').value.trim(), pw = $('adm-pw').value;
   if (!name || !acc) { showToast('姓名與帳號為必填', 'error'); return; }
   if (!row && !pw) { showToast('請設定密碼', 'error'); return; }
-  if (pw && pw.length < 8) { showToast('密碼至少 8 碼', 'error'); return; }
+  if (pw) {
+    var pe = pw.length < 10 ? '密碼至少需要 10 個字元' : (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) ? '密碼需同時包含英文字母與數字' : (pw.toLowerCase().indexOf(acc.toLowerCase()) >= 0 ? '密碼不可包含帳號' : '');
+    if (pe) { showToast(pe, 'error'); return; }
+  }
   var payload = { name: name, acc: acc, role: $('adm-role').value, email: $('adm-email').value.trim() };
   setLoading(true, '儲存中…');
   try {
     if (row) { payload.action = 'updateAdmin'; payload._row = Number(row); payload.pw = pw || '__keep__'; }
     else { payload.action = 'saveAdmin'; payload.pw = pw; }
+    var mine = allAdmins.filter(function (a) { return String(a._row) === String(row); })[0];
     await api(payload);
+    if (mine && mine.acc === currentAdmin.acc) {               // 改的是自己的帳號
+      currentAdmin.name = name; currentAdmin.acc = acc; currentAdmin.email = payload.email;
+      if (pw) { currentAdmin.mustChange = false; hidePwBanner(); }
+      $('su-name').textContent = name; $('su-avatar').textContent = name.charAt(0);
+      try { sessionStorage.setItem(SESS_KEY, JSON.stringify({ admin: currentAdmin, token: token })); } catch (e) {}
+    }
     closeModal('modal-admin');
     await loadAdmins();
     showToast('已儲存', 'success');
@@ -427,6 +466,23 @@ async function deleteAdmin(i) {
   setLoading(true, '刪除中…');
   try { await api({ action: 'deleteAdmin', _row: a._row }); await loadAdmins(); showToast('已刪除', 'success'); }
   catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
+  setLoading(false);
+}
+
+/* ═══════════════ 密碼提醒橫幅／操作紀錄 ═══════════════ */
+function showPwBanner() { $('pw-banner').style.display = 'block'; }
+function hidePwBanner() { $('pw-banner').style.display = 'none'; }
+var AUDIT_LABELS = { login_ok: '登入成功', login_fail: '登入失敗', logout: '登出', submit: '求職者送出', list_records: '載入個人資料清單', open_record: '開啟個人資料', download_word: '下載 Word', download_pdf: '下載 PDF', print: '列印', delete_record: '刪除個人資料', admin_create: '新增管理員', admin_update: '修改管理員', admin_update_password: '修改密碼', admin_delete: '刪除管理員', admin_reset_password: '重設密碼' };
+async function loadAudit() {
+  setLoading(true, '載入操作紀錄…');
+  try {
+    var r = await api({ action: 'getAudit' });
+    var rows = r.logs || [];
+    $('audit-body').innerHTML = rows.length ? rows.map(function (x) {
+      var bad = x.action === 'login_fail' || x.action === 'delete_record' || x.action === 'admin_delete';
+      return '<tr><td style="white-space:nowrap;font-size:12px;color:var(--ink3)">' + esc(x.time) + '</td><td>' + esc(x.acc) + '</td><td' + (bad ? ' style="color:var(--danger);font-weight:500"' : '') + '>' + esc(AUDIT_LABELS[x.action] || x.action) + '</td><td style="font-family:\'JetBrains Mono\',monospace;font-size:12px">' + esc(x.target) + '</td><td style="font-size:13px;color:var(--ink3)">' + esc(x.detail) + '</td></tr>';
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--ink3);padding:32px">尚無紀錄</td></tr>';
+  } catch (e) { if (e.message !== 'SESSION_EXPIRED') showToast('載入失敗：' + e.message, 'error'); }
   setLoading(false);
 }
 

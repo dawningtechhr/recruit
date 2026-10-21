@@ -45,7 +45,7 @@
         if (x.acc === d.acc && x.pw === d.pw) {
           var t = 'demo' + Math.random().toString(36).slice(2) + Date.now().toString(36);
           db.tokens[t] = x.acc; save(db);
-          return { status: 'success', token: t, admin: { name: x.name, acc: x.acc, email: x.email, role: x.role } };
+          return { status: 'success', token: t, admin: { name: x.name, acc: x.acc, email: x.email, role: x.role, mustChange: x.pw.length < 10 || !/[A-Za-z]/.test(x.pw) || !/[0-9]/.test(x.pw) } };
         }
       }
       return { status: 'error', message: 'Invalid credentials' };
@@ -57,12 +57,16 @@
       db.resumes.push(rec); if (d.photo) db.photos[d.id] = d.photo; save(db);
       return { status: 'success', id: d.id };
     }
+    if (a === 'logout') { delete db.tokens[d.token]; save(db); return { status: 'success' }; }
     if (a === 'checkResume') return { status: 'success', exists: db.resumes.some(function (r) { return r.ID === d.id; }) };
     if (!db.tokens[d.token]) return { status: 'error', message: 'SESSION_EXPIRED' };
+    if (a === 'logEvent') { (db.audit = db.audit || []).unshift({ time: stamp(), acc: db.tokens[d.token], action: d.event, target: d.id, detail: '' }); save(db); return { status: 'success' }; }
+    if (a === 'getAudit') return { status: 'success', logs: (db.audit || []).slice(0, 500) };
     if (a === 'getResumes') { seed(db); save(db); return { status: 'success', records: db.resumes }; }
     if (a === 'getPhoto') return { status: 'success', photo: db.photos[d.id] || '' };
     if (a === 'deleteResume') { db.resumes = db.resumes.filter(function (r) { return r.ID !== d.id; }); delete db.photos[d.id]; save(db); return { status: 'success' }; }
     if (a === 'getAdmins') return { status: 'success', admins: db.admins.map(function (x) { return { name: x.name, acc: x.acc, email: x.email, role: x.role, _row: x._row }; }) };
+    if ((a === 'saveAdmin' || (a === 'updateAdmin' && d.pw && d.pw !== '__keep__')) && (String(d.pw).length < 10 || !/[A-Za-z]/.test(d.pw) || !/[0-9]/.test(d.pw))) return { status: 'error', message: '密碼至少 10 個字元，且需同時包含英文字母與數字' };
     if (a === 'saveAdmin') {
       if (db.admins.some(function (x) { return x.acc === d.acc; })) return { status: 'error', message: '帳號已存在' };
       db.admins.push({ name: d.name, acc: d.acc, pw: d.pw, role: d.role, email: d.email || '', _row: db.admins.length + 2 }); save(db); return { status: 'success' };
