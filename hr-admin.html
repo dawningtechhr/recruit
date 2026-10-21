@@ -278,9 +278,10 @@ var MODULES = [
 var $ = function (s) { return document.getElementById(s); };
 var currentAdmin = null, token = '', allAdmins = [], frames = {}, activeId = null;
 var SESS_KEY = 'dx_hr_session';
-// 內嵌的後台頁面放進沙盒（與本頁隔離），即使其中一個頁面被植入惡意程式，也讀不到本頁的登入資訊。
-// 若某個後台分頁一直顯示「無法載入」，可把這個值改成 false 再試。
-var SANDBOX_FRAMES = true;
+// 是否把內嵌的後台放進沙盒（與本頁隔離）。
+// ★ 目前必須是 false：沙盒內的頁面無法使用「下載 PDF」（html2canvas 在沙盒中會出現
+//   「Blocked a frame with origin "null"」錯誤），四個後台都有 PDF 功能，所以不能啟用沙盒。
+var SANDBOX_FRAMES = false;
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function showScreen(id) { document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); }); $(id).classList.add('active'); }
