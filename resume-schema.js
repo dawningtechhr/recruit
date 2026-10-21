@@ -324,5 +324,53 @@
     return h;
   }
 
-  g.RS = { consent: consent, consentHTML: consentHTML, agree: AGREE, sections: sections, list: list, keyToLabel: k2l, labelToKey: l2k, toRec: toRec, fromRec: fromRec, viewHTML: viewHTML, esc: esc };
+
+  /* ── 表單 HTML 產生器（求職者填寫頁、後台「編輯」共用）──
+     opts.skip：要略過的區段 id（後台編輯時略過 'decl' 聲明書）；opts.consentHTML：聲明書全文 */
+  function ctl(name, f) {
+    var a = f.ro ? ' readonly' : '';
+    if (f.type === 'select')
+      return '<select name="' + name + '"><option value="">請選擇</option>' + f.opts.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>';
+    if (f.type === 'radio')
+      return '<div class="rg">' + f.opts.map(function (o) { return '<label><input type="radio" name="' + name + '" value="' + o + '">' + o + '</label>'; }).join('') + '</div>';
+    if (f.type === 'area') return '<textarea name="' + name + '"></textarea>';
+    if (f.type === 'check') return '<div class="rg"><label><input type="checkbox" name="' + name + '" value="1">' + esc(f.l) + '</label></div>';
+    var at = (f.ph ? ' placeholder="' + f.ph + '"' : '') + (f.max ? ' maxlength="' + f.max + '"' : '') + (f.step ? ' step="' + f.step + '"' : '') + (f.upper ? ' style="text-transform:uppercase"' : '') + a;
+    if (f.sum) at += ' readonly tabindex="-1"';
+    return '<input type="' + f.type + '" name="' + name + '"' + at + '>';
+  }
+  function fieldHTML(name, f, label) {
+    if (f.type === 'photo')
+      return '<div class="fg wide" data-f="photo"><label>' + label + '</label><div class="photo"><div class="box" id="photoBox">2 吋照片<br>（上傳電子檔）</div><div><input type="file" id="photoFile" accept="image/*"><small>系統會自動縮圖；可先不上傳。</small></div><input type="hidden" name="photo"></div></div>';
+    if (f.type === 'check' && f.hidden) return '';
+    var lab = f.type === 'check' ? '' : '<label>' + label + (f.req ? '<span class="rq">*</span>' : '') + '</label>';
+    return '<div class="fg' + (f.wide ? ' wide' : '') + '" data-f="' + name + '">' + lab + ctl(name, f) + '</div>';
+  }
+  function formHTML(opts) {
+    opts = opts || {};
+    var skip = opts.skip || [], h = '';
+    sections.forEach(function (s) {
+      if (skip.indexOf(s.id) >= 0) return;
+      var body = '';
+      s.blocks.forEach(function (b) {
+        if (b.t === 'consent') {
+          body += '<div class="consent">' + (opts.consentHTML || '') + '</div>' +
+            '<div class="fg" data-f="consent" style="margin-bottom:14px"><div class="rg"><label><input type="checkbox" name="consent" value="1">' + AGREE + '<span style="color:var(--danger)">*</span></label></div></div>';
+        } else if (b.t === 'fields') {
+          if (b.sub) body += '<div class="sub-title">' + b.sub + '</div>';
+          body += '<div class="grid">' + b.fields.map(function (f) { return fieldHTML(f.k, f, f.l); }).join('') + '</div>';
+        } else if (b.t === 'cards') {
+          b.ids.forEach(function (id, i) {
+            body += '<div class="rowcard"><h4>' + b.names[i] + '</h4><div class="grid">' +
+              b.fields.filter(function (f) { return !f.only || f.only.indexOf(i) >= 0; })
+                .map(function (f) { return fieldHTML(b.key + '.' + id + '.' + f.k, f, f.l); }).join('') + '</div></div>';
+          });
+        }
+      });
+      h += '<section class="form-card"><h3>' + s.n + '. ' + s.title + '</h3>' + (s.hint ? '<p class="hint">' + s.hint + '</p>' : '') + body + '</section>';
+    });
+    return h;
+  }
+
+  g.RS = { formHTML: formHTML, consent: consent, consentHTML: consentHTML, agree: AGREE, sections: sections, list: list, keyToLabel: k2l, labelToKey: l2k, toRec: toRec, fromRec: fromRec, viewHTML: viewHTML, esc: esc };
 })(window);

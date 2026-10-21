@@ -64,6 +64,15 @@
     if (a === 'getAudit') return { status: 'success', logs: (db.audit || []).slice(0, 500) };
     if (a === 'getResumes') { seed(db); save(db); return { status: 'success', records: db.resumes }; }
     if (a === 'getPhoto') return { status: 'success', photo: db.photos[d.id] || '' };
+    if (a === 'updateResume') {
+      var ix = -1; db.resumes.forEach(function (r, i) { if (r.ID === d.id) ix = i; });
+      if (ix < 0) return { status: 'error', message: '找不到這筆資料（可能已被刪除）' };
+      var cnt = 0; for (var k in d.rec) { if (String(db.resumes[ix][k] || '') !== String(d.rec[k] || '')) { db.resumes[ix][k] = d.rec[k]; cnt++; } }
+      if (d.photo) { db.photos[d.id] = d.photo; db.resumes[ix]._hasPhoto = true; cnt++; }
+      if (d.removePhoto) { delete db.photos[d.id]; db.resumes[ix]._hasPhoto = false; cnt++; }
+      (db.audit = db.audit || []).unshift({ time: stamp(), acc: db.tokens[d.token], action: 'edit_record', target: d.id, detail: '修改 ' + cnt + ' 項' });
+      save(db); return { status: 'success', changed: cnt };
+    }
     if (a === 'deleteResume') { db.resumes = db.resumes.filter(function (r) { return r.ID !== d.id; }); delete db.photos[d.id]; save(db); return { status: 'success' }; }
     if (a === 'getAdmins') return { status: 'success', admins: db.admins.map(function (x) { return { name: x.name, acc: x.acc, email: x.email, role: x.role, _row: x._row }; }) };
     if ((a === 'saveAdmin' || (a === 'updateAdmin' && d.pw && d.pw !== '__keep__')) && (String(d.pw).length < 10 || !/[A-Za-z]/.test(d.pw) || !/[0-9]/.test(d.pw))) return { status: 'error', message: '密碼至少 10 個字元，且需同時包含英文字母與數字' };

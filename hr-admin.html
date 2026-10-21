@@ -472,7 +472,7 @@ async function deleteAdmin(i) {
 /* ═══════════════ 密碼提醒橫幅／操作紀錄 ═══════════════ */
 function showPwBanner() { $('pw-banner').style.display = 'block'; }
 function hidePwBanner() { $('pw-banner').style.display = 'none'; }
-var AUDIT_LABELS = { login_ok: '登入成功', login_fail: '登入失敗', logout: '登出', submit: '求職者送出', list_records: '載入個人資料清單', open_record: '開啟個人資料', download_word: '下載 Word', download_pdf: '下載 PDF', print: '列印', delete_record: '刪除個人資料', admin_create: '新增管理員', admin_update: '修改管理員', admin_update_password: '修改密碼', admin_delete: '刪除管理員', admin_reset_password: '重設密碼' };
+var AUDIT_LABELS = { login_ok: '登入成功', login_fail: '登入失敗', logout: '登出', submit: '求職者送出', list_records: '載入個人資料清單', open_record: '開啟個人資料', download_word: '下載 Word', download_pdf: '下載 PDF', print: '列印', edit_record: '編輯個人資料', delete_record: '刪除個人資料', admin_create: '新增管理員', admin_update: '修改管理員', admin_update_password: '修改密碼', admin_delete: '刪除管理員', admin_reset_password: '重設密碼' };
 async function loadAudit() {
   setLoading(true, '載入操作紀錄…');
   try {

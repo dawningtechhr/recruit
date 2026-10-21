@@ -185,6 +185,29 @@ tr:hover td{background:var(--paper2)}
 .stat-grid{grid-template-columns:repeat(3,1fr)}
 .btn-primary:disabled{opacity:.6;cursor:not-allowed}
 .photo-thumb{float:right;margin:0 0 8px 14px}
+#modal-report .modal-foot{flex-wrap:wrap}
+#modal-report .modal-foot button{flex:0 0 104px;width:104px;min-width:104px;padding-left:0;padding-right:0;white-space:nowrap;text-align:center}
+/* 編輯視窗（與求職者填寫頁相同的表單） */
+#edit-form .form-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:16px 18px 6px;margin-bottom:14px}
+#edit-form .form-card>h3{font-size:15px;font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+#edit-form .form-card>h3::before{content:'';display:inline-block;width:3px;height:15px;background:var(--accent);border-radius:2px}
+#edit-form .hint{font-size:12px;color:var(--ink3);margin:0 0 10px 11px}
+#edit-form .sub-title{font-size:13px;font-weight:500;color:var(--accent2);margin:6px 0 8px}
+#edit-form .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px 14px;margin-bottom:12px}
+#edit-form .grid .wide{grid-column:1/-1}
+#edit-form textarea{min-height:60px;resize:vertical;line-height:1.6}
+#edit-form input[readonly]{background:var(--paper2);color:var(--ink3)}
+#edit-form .rg{display:flex;flex-wrap:wrap;gap:6px 16px;padding:4px 0}
+#edit-form .rg label{display:flex;align-items:center;gap:6px;font-weight:400;margin:0;cursor:pointer}
+#edit-form .rg input{width:auto;padding:0;accent-color:var(--accent)}
+#edit-form .rowcard{border:1px dashed var(--paper3);border-radius:8px;padding:10px 12px 2px;margin-bottom:10px;background:var(--paper)}
+#edit-form .rowcard h4{font-size:13px;font-weight:500;color:var(--accent2);margin-bottom:8px}
+#edit-form .rq{color:var(--danger);margin-left:2px}
+#edit-form .err-f input,#edit-form .err-f select{border-color:var(--danger);background:#fff7f6}
+#edit-form .photo{display:flex;gap:14px;align-items:center}
+#edit-form .photo .box{width:90px;height:120px;border:1px dashed var(--paper3);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:12px;text-align:center;overflow:hidden;background:var(--paper2);flex-shrink:0}
+#edit-form .photo img{width:100%;height:100%;object-fit:cover}
+#edit-form .photo small{display:block;color:var(--ink3);font-size:12px;margin:5px 0}
 html.embed .sidebar-logo,html.embed .sidebar-footer{display:none!important}
 html.embed .nav-item[data-standalone]{display:none!important}
 @media(max-width:700px){.sidebar{display:none}.tab-content{padding:18px 14px}.stat-grid{grid-template-columns:1fr 1fr}}
@@ -241,7 +264,7 @@ html.embed .nav-item[data-standalone]{display:none!important}
 
     <div class="tab-content" id="tab-records">
       <div class="page-title">個人資料紀錄</div>
-      <div class="page-sub">求職者線上填寫的個人資料表，可檢視、列印與下載 Word 檔</div>
+      <div class="page-sub">求職者線上填寫的個人資料表，可檢視、編輯、列印與下載 PDF／Word 檔</div>
       <div class="table-wrap">
         <div class="table-head">
           <div class="search-bar"><span class="si">🔍</span><input type="text" id="rec-search" placeholder="搜尋姓名、職務或電話…" oninput="renderRecords()"></div>
@@ -262,9 +285,18 @@ html.embed .nav-item[data-standalone]{display:none!important}
     <div class="modal-foot no-print">
       <button class="btn-secondary" onclick="closeModal('modal-report')">關閉</button>
       <button class="btn-secondary" onclick="printReport()">🖨 列印</button>
-      <button class="btn-secondary" id="btn-pdf" onclick="downloadPDF(currentRec)">⬇ 下載 PDF</button>
+      <button class="btn-primary" id="btn-pdf" onclick="downloadPDF(currentRec)">⬇ 下載 PDF</button>
       <button class="btn-primary" id="btn-word" onclick="downloadWord(currentRec)">⬇ 下載 Word</button>
     </div>
+  </div>
+</div>
+
+<!-- 編輯個人資料 -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal" style="max-width:960px">
+    <div class="modal-head"><h3 id="edit-title">編輯個人資料</h3><button class="btn-close" onclick="closeEdit()">✕</button></div>
+    <div class="modal-body" id="edit-body"><div id="edit-notice"></div><form id="edit-form" autocomplete="off" novalidate></form></div>
+    <div class="modal-foot"><button class="btn-secondary" style="width:auto;padding:10px 20px" onclick="closeEdit()">取消</button><button class="btn-primary" style="width:auto;padding:11px 28px" id="btn-edit-save" onclick="saveEdit()">儲存修改</button></div>
   </div>
 </div>
 
@@ -397,7 +429,7 @@ function renderRecords() {
       '<td style="font-size:12px;color:var(--ink3);white-space:nowrap">' + esc(r.time) + '</td>' +
       '<td style="white-space:nowrap">' +
       '<button class="btn-secondary btn-sm" style="margin-right:6px" onclick="openReport(\'' + r.id + '\')">📄 查看</button>' +
-      '<button class="btn-secondary btn-sm" style="margin-right:6px" onclick="quickWord(\'' + r.id + '\')">⬇ Word</button>' +
+      '<button class="btn-secondary btn-sm" style="margin-right:6px" onclick="openEdit(\'' + r.id + '\')">編輯</button>' +
       '<button class="btn-danger btn-sm" onclick="deleteRecord(\'' + r.id + '\')">刪除</button></td></tr>';
   }).join('');
 }
@@ -486,6 +518,132 @@ async function downloadWord(r) {
   } catch (e) { showToast('下載失敗：' + e.message, 'error'); }
   if (btn) btn.disabled = false;
 }
+/* ═══════ 編輯個人資料 ═══════ */
+var editRec = null, editForm = null, editOrigPhoto = '', editBusy = false;
+var EDIT_KEEP = ['consent', 'signature', 'sign_date'];     // 聲明書相關欄位不在編輯表單內，原值保留
+
+function editCollect() {
+  var d = {};
+  Array.prototype.forEach.call(editForm.elements, function (el) {
+    if (!el.name) return;
+    if (el.type === 'radio') { if (el.checked) d[el.name] = el.value; }
+    else if (el.type === 'checkbox') { if (el.checked) d[el.name] = '1'; }
+    else if (el.value !== '') d[el.name] = el.value;
+  });
+  return d;
+}
+function editFill(d, photo) {
+  Object.keys(d).forEach(function (k) {
+    editForm.querySelectorAll('[name="' + k.replace(/"/g, '\\"') + '"]').forEach(function (el) {
+      if (el.type === 'radio') el.checked = (el.value === d[k]);
+      else if (el.type === 'checkbox') el.checked = (d[k] === '1');
+      else el.value = d[k];
+    });
+  });
+  editForm.elements['photo'].value = photo || '';
+  editShowPhoto(photo);
+  editRecalc();
+}
+function editShowPhoto(src) { var b = editForm.querySelector('#photoBox'); if (b) b.innerHTML = src ? '<img src="' + src + '" alt="照片">' : '2 吋照片<br>（上傳電子檔）'; }
+function editNum(n) { var v = parseFloat((editForm.elements[n] || {}).value); return isNaN(v) ? 0 : v; }
+function editRecalc() {
+  [0, 1, 2, 3].forEach(function (i) {
+    var k = 'job.' + i + '.';
+    var s = editNum(k + 'fixed') + editNum(k + 'allow') + editNum(k + 'other');
+    editForm.elements[k + 'total'].value = s ? s : '';
+    var m = editNum(k + 'fixed_m') + editNum(k + 'perf_m') + editNum(k + 'bonus_m');
+    editForm.elements[k + 'total_m'].value = m ? Math.round(m * 100) / 100 : '';
+  });
+}
+function editSyncAddr() {
+  if (!editForm.elements['addr.same'].checked) return;
+  editForm.elements['addr.mail'].value = editForm.elements['addr.reg'].value;
+  editForm.elements['addr.mail_tel'].value = editForm.elements['addr.reg_tel'].value;
+}
+function editOnPhoto(e) {                                   // 與求職者頁相同：縮成 480×640 的 JPEG
+  var f = e.target.files && e.target.files[0]; if (!f) return;
+  var img = new Image(), url = URL.createObjectURL(f);
+  img.onload = function () {
+    var W = 480, H = 640, s = Math.max(W / img.width, H / img.height);
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var x = c.getContext('2d'), w = img.width * s, h = img.height * s;
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+    var q = 0.85, data = c.toDataURL('image/jpeg', q);
+    while (data.length > 400000 && q > 0.3) { q -= 0.1; data = c.toDataURL('image/jpeg', q); }
+    editForm.elements['photo'].value = data; editShowPhoto(data); URL.revokeObjectURL(url);
+  };
+  img.onerror = function () { showToast('無法讀取此圖片，請換一張', 'error'); };
+  img.src = url;
+}
+async function openEdit(id) {
+  var r = allRecords.filter(function (x) { return x.id === id; })[0]; if (!r) return;
+  editRec = r; editForm = $('edit-form');
+  $('edit-title').textContent = '編輯個人資料 — ' + r.name + '（' + r.job + '）';
+  $('edit-notice').innerHTML = '';
+  editForm.innerHTML = RS.formHTML({ skip: ['decl'] });
+  var photo = ''; try { photo = await getPhoto(r); } catch (e) {}
+  editOrigPhoto = photo;
+  editFill(r.d, photo);
+  var box = editForm.querySelector('.photo > div:nth-child(2)');       // 在檔案選擇旁加「移除照片」
+  if (box) {
+    var rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn-secondary btn-sm'; rm.textContent = '移除照片';
+    rm.onclick = function () { editForm.elements['photo'].value = ''; editShowPhoto(''); };
+    box.appendChild(rm);
+  }
+  editForm.oninput = function (e) {
+    if (e.target.name && /^job\.\d\.(fixed|allow|other|fixed_m|perf_m|bonus_m)$/.test(e.target.name)) editRecalc();
+    if (editForm.elements['addr.same'].checked && /^addr\.(same|reg|reg_tel)$/.test(e.target.name)) editSyncAddr();
+  };
+  editForm.onchange = function (e) {
+    if (e.target.id === 'photoFile') return editOnPhoto(e);
+    if (e.target.name === 'addr.same') editSyncAddr();
+  };
+  $('edit-body').scrollTop = 0;
+  openModal('modal-edit');
+}
+function closeEdit() {
+  if (editBusy) return;
+  if (editForm && editRec && !confirm('尚未儲存的修改將會遺失，確定要關閉嗎？')) return;
+  closeModal('modal-edit'); editRec = null;
+}
+async function saveEdit() {
+  if (!editRec || editBusy) return;
+  var d = editCollect(), photo = d.photo || ''; delete d.photo;
+  editForm.querySelectorAll('.err-f').forEach(function (x) { x.classList.remove('err-f'); });
+  var errs = [];
+  if (!d['basic.name_zh']) errs.push(['basic.name_zh', '中文姓名']);
+  if (!d['basic.mobile']) errs.push(['basic.mobile', '行動電話']);
+  if (!d['basic.email'] || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d['basic.email'])) errs.push(['basic.email', 'E-mail（需填寫且格式正確）']);
+  if (d['basic.id_no'] && !/^[A-Za-z][A-Za-z0-9]\d{8}$/.test(d['basic.id_no'])) errs.push(['basic.id_no', '身份證字號格式']);
+  if (errs.length) {
+    errs.forEach(function (e) { var b = editForm.querySelector('[data-f="' + e[0] + '"]'); if (b) b.classList.add('err-f'); });
+    $('edit-notice').innerHTML = '<div style="background:#fceaea;border-left:3px solid var(--danger);color:var(--danger);padding:10px 14px;margin-bottom:14px;font-size:14px">請修正：' + errs.map(function (e) { return e[1]; }).join('、') + '</div>';
+    var first = editForm.querySelector('[data-f="' + errs[0][0] + '"]'); if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  // 以原資料為底：表單內的欄位以表單為準（清空即刪除），聲明書相關欄位保留原值
+  var merged = {};
+  RS.list.forEach(function (e) {
+    if (EDIT_KEEP.indexOf(e.key) >= 0) { if (editRec.d[e.key]) merged[e.key] = editRec.d[e.key]; }
+    else if (d[e.key] !== undefined) merged[e.key] = d[e.key];
+  });
+  var payload = { action: 'updateResume', id: editRec.id, rec: RS.toRec(merged) };
+  if (photo !== editOrigPhoto) { if (photo) payload.photo = photo; else payload.removePhoto = true; }
+
+  editBusy = true; var btn = $('btn-edit-save'); btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    var res = await api(payload);
+    delete photoCache[editRec.id];
+    editBusy = false; editRec = null; closeModal('modal-edit');
+    showToast(res.changed ? '已儲存修改（共 ' + res.changed + ' 項）' : '沒有任何變動', 'success');
+    await refreshAll();
+  } catch (e) {
+    $('edit-notice').innerHTML = '<div style="background:#fceaea;border-left:3px solid var(--danger);color:var(--danger);padding:10px 14px;margin-bottom:14px;font-size:14px">儲存失敗：' + esc(e.message) + '</div>';
+    $('edit-body').scrollTop = 0;
+  }
+  editBusy = false; btn.disabled = false; btn.textContent = '儲存修改';
+}
+
 /* ═══════ 下載 PDF（A4、多頁；換頁盡量落在表格列與段落之間，避免切斷文字）═══════ */
 async function downloadPDF(r) {
   if (!r) return;
@@ -535,7 +693,6 @@ async function downloadPDF(r) {
   if (holder && holder.parentNode) holder.parentNode.removeChild(holder);
   if (btn) { btn.disabled = false; btn.textContent = '⬇ 下載 PDF'; }
 }
-function quickWord(id) { var r = allRecords.filter(function (x) { return x.id === id; })[0]; downloadWord(r); }
 </script>
 </body>
 </html>
