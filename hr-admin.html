@@ -261,19 +261,18 @@ html,body{height:100%}
   </div>
 </div>
 
-<script src="../敦新 線上履歷/demo-api.js"></script>
+<script src="demo-api.js"></script>
 <script>
 /* ═══════════════ 設定 ═══════════════ */
 // 線上履歷 Apps Script（同時負責整合後台的登入與帳號）
 var API_URL = 'https://script.google.com/macros/s/AKfycbxthkJbPud89s_vBIv9smDNDdOLfgveE3zu1q5YMs6W4MPh1Dw4KoSXH5QnAeM1YkjZXA/exec';
 
-// 四個後台頁面。預設使用相對路徑（四個資料夾一起部署在同一個網站時）；
-// 若各自部署在不同網址，請改成完整網址（https://…）。
+// 四個後台頁面的完整網址（各自部署在不同的 GitHub 倉庫）。
 var MODULES = [
-  { id: 'resume',      icon: '📝', name: '個人資料',     url: '../敦新 線上履歷/resume-admin.html' },
-  { id: 'ai',          icon: '🤖', name: 'AI 能力測驗',  url: '../敦新 AI能力測驗/ai-admin.html' },
-  { id: 'logic',       icon: '🧩', name: '邏輯能力測驗', url: '../敦新 邏輯能力測驗/logic-admin.html' },
-  { id: 'personality', icon: '🧭', name: '人格特質分析', url: '../敦新 人格特質分析9面向版/admin.html' }
+  { id: 'resume',      icon: '📝', name: '個人資料',     url: 'https://dawningtechhr.github.io/recruit/resume-admin.html' },
+  { id: 'ai',          icon: '🤖', name: 'AI 能力測驗',  url: 'https://dawningtechhr.github.io/ai-assessment/ai-admin.html' },
+  { id: 'logic',       icon: '🧩', name: '邏輯能力測驗', url: 'https://dawningtechhr.github.io/logic-assessment/logic-admin.html' },
+  { id: 'personality', icon: '🧭', name: '人格特質分析', url: 'https://dawningtechhr.github.io/personality-assessment/admin.html' }
 ];
 
 var $ = function (s) { return document.getElementById(s); };
