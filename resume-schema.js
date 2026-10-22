@@ -286,7 +286,7 @@
           var items = [];
           b.fields.forEach(function (f) {
             if (f.type === 'photo' || f.hidden) return;
-            var v = showVal(f, d[f.k] || '');
+            var v = f.blank ? '' : showVal(f, d[f.k] || '');       // 標記為留白的欄位（簽章、簽章日期）一律顯示空白，不論資料庫裡有沒有舊值
             if (v === '' && !f.req && !f.show) return;
             items.push({ l: f.vl || f.l, v: v === '' ? (f.blank ? '' : '—') : v, tall: !!f.tall, wide: f.wide && (f.type === 'text' || f.type === 'area' || f.type === 'radio') });
           });
