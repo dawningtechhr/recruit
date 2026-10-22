@@ -115,8 +115,9 @@
       { t: 'consent' },
       { t: 'fields', fields: [
         F('consent', '同意個資告知事項', 'check', { req: 1, hidden: 1 }),
-        F('signature', '填表人簽章', 'text', { req: 1, ph: '請輸入全名代替親簽' }),
-        F('sign_date', '簽章日期', 'date', { auto: 'today', ro: 1 })
+        // 簽章與日期留白，面試時現場手寫；後台檢視／Word／PDF 該列為 2 倍高方便簽名。試算表欄位標題維持「填表人簽章」不變。
+        F('signature', '填表人簽章', 'text', { dis: 1, show: 1, blank: 1, tall: 1, dl: '填寫人簽章(面試時現場簽名)', vl: '填寫人簽章' }),
+        F('sign_date', '簽章日期', 'text', { dis: 1, show: 1, blank: 1, tall: 1 })     // 用文字欄位，避免瀏覽器顯示「年/月/日」預設文字
       ] }
     ] }
   ];
@@ -200,6 +201,8 @@
     var CB = 'border:1px solid #888;padding:' + PAD + ';font-size:' + FS + ';vertical-align:' + (o.valign || 'top') + ';' + LH;
     var TL = CB + 'background:#f2f0eb;font-weight:bold;color:#3d3a34;';
     var PER = c ? 3 : 2, LW = c ? 11 : 17, VW = c ? 22.3 : 33;
+    var padPx = parseFloat(String(PAD).split(' ')[0]) || 0, lhF = Math.max(parseFloat(o.lh) || 1.5, 1.25);
+    var tallH = Math.round(2 * (parseFloat(FS) * lhF + padPx * 1.5));     // 一般列高（pt）的 2 倍
     var TB = 'width:100%;border-collapse:collapse;margin-bottom:' + (c ? '2px' : '8px');
     var SUB = 'font-size:' + (c ? '10pt' : '11pt') + ';font-weight:bold;margin:' + (c ? '3px 0 1px' : '8px 0 4px') + ';color:#c9540f';
     var EMPTY = 'font-size:' + (c ? '10pt' : '10pt') + ';color:#7a7570;margin:' + (c ? '1px 0 3px' : '2px 0 8px');
@@ -210,12 +213,14 @@
         if (items[i].wide) {
           rows += '<tr><td style="' + TL + 'width:' + LW + '%">' + esc(items[i].l) + '</td><td style="' + CB + '" colspan="' + span + '">' + esc(items[i].v) + '</td></tr>'; i++; continue;
         }
-        var row = '', n = 0;
+        var row = '', n = 0, tall = false;
         while (i < items.length && !items[i].wide && n < PER) {
+          if (items[i].tall) tall = true;
           row += '<td style="' + TL + 'width:' + LW + '%">' + esc(items[i].l) + '</td><td style="' + CB + 'width:' + VW + '%">' + esc(items[i].v) + '</td>'; i++; n++;
         }
         if (n < PER) row += '<td style="' + CB + '" colspan="' + ((PER - n) * 2) + '"></td>';
-        rows += '<tr>' + row + '</tr>';
+        if (tall) row = row.replace(/<td style="/g, '<td style="height:' + tallH + 'pt;');     // 該列高度為一般列的 2 倍
+        rows += '<tr' + (tall ? ' style="height:' + tallH + 'pt"' : '') + '>' + row + '</tr>';
       }
       return '<table style="' + TB + '" border="1" cellspacing="0" cellpadding="1">' + rows + '</table>';
     }
@@ -282,8 +287,8 @@
           b.fields.forEach(function (f) {
             if (f.type === 'photo' || f.hidden) return;
             var v = showVal(f, d[f.k] || '');
-            if (v === '' && !f.req) return;
-            items.push({ l: f.l, v: v === '' ? '—' : v, wide: f.wide && (f.type === 'text' || f.type === 'area' || f.type === 'radio') });
+            if (v === '' && !f.req && !f.show) return;
+            items.push({ l: f.vl || f.l, v: v === '' ? (f.blank ? '' : '—') : v, tall: !!f.tall, wide: f.wide && (f.type === 'text' || f.type === 'area' || f.type === 'radio') });
           });
           if (b.sub) body += '<p style="' + SUB + '">' + esc(b.sub) + '</p>';
           if (items.length) body += b.eq ? eqTable(items) : pairsTable(items);
@@ -328,7 +333,7 @@
   /* ── 表單 HTML 產生器（求職者填寫頁、後台「編輯」共用）──
      opts.skip：要略過的區段 id（後台編輯時略過 'decl' 聲明書）；opts.consentHTML：聲明書全文 */
   function ctl(name, f) {
-    var a = f.ro ? ' readonly' : '';
+    var a = (f.ro ? ' readonly' : '') + (f.dis ? ' disabled' : '');
     if (f.type === 'select')
       return '<select name="' + name + '"><option value="">請選擇</option>' + f.opts.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>';
     if (f.type === 'radio')
@@ -343,7 +348,7 @@
     if (f.type === 'photo')
       return '<div class="fg wide" data-f="photo"><label>' + label + '</label><div class="photo"><div class="box" id="photoBox">2 吋照片<br>（上傳電子檔）</div><div><input type="file" id="photoFile" accept="image/*"><small>系統會自動縮圖；可先不上傳。</small></div><input type="hidden" name="photo"></div></div>';
     if (f.type === 'check' && f.hidden) return '';
-    var lab = f.type === 'check' ? '' : '<label>' + label + (f.req ? '<span class="rq">*</span>' : '') + '</label>';
+    var lab = f.type === 'check' ? '' : '<label>' + (f.dl || label) + (f.req ? '<span class="rq">*</span>' : '') + '</label>';
     return '<div class="fg' + (f.wide ? ' wide' : '') + '" data-f="' + name + '">' + lab + ctl(name, f) + '</div>';
   }
   function formHTML(opts) {
