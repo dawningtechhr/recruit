@@ -212,6 +212,14 @@ function validate() {
   if (id && !/^[A-Za-z][A-Za-z0-9]\d{8}$/.test(id)) errs.push({ n: 'basic.id_no', l: '身份證字號格式不正確' });
   if (d['basic.email'] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d['basic.email'])) errs.push({ n: 'basic.email', l: 'E-mail 格式不正確' });
   if (d['basic.mobile'] && !/^[0-9+\-\s()]{8,}$/.test(d['basic.mobile'])) errs.push({ n: 'basic.mobile', l: '行動電話格式不正確' });
+  // 任用諮詢：至少完整填寫一位；填了一半的也要補完整
+  var refF = ['name', 'company', 'title', 'tel', 'rel'], refDone = 0;
+  [0, 1].forEach(function (i) {
+    var got = refF.filter(function (k) { return d['ref.' + i + '.' + k]; }).length;
+    if (got === refF.length) refDone++;
+    else if (got > 0) refF.forEach(function (k) { if (!d['ref.' + i + '.' + k]) errs.push({ n: 'ref.' + i + '.' + k, l: '諮詢人' + (i + 1) + ' 資料請填寫完整（缺：' + RS.keyToLabel['ref.' + i + '.' + k].replace(/^諮詢人\d /, '') + '）' }); });
+  });
+  if (!refDone && !errs.some(function (e) { return /^ref\./.test(e.n); })) refF.forEach(function (k, j) { errs.push({ n: 'ref.0.' + k, l: '任用諮詢請至少完整填寫一位（姓名、公司、職稱、聯絡電話、關係皆須填寫）', quiet: j > 0 }); });
   if (!['grad', 'univ', 'college', 'high'].some(function (k) { return d['edu.' + k + '.school']; })) errs.push({ n: 'edu.high.school', l: '請至少填寫一筆教育程度' });
   if (!d['job.none'] && !d['job.0.company']) errs.push({ n: 'job.0.company', l: '請填寫工作經歷，或勾選「無工作經歷（應屆畢業）」' });
   RS.list.forEach(function (e) { if (/\.note$/.test(e.key)) { var p = e.key.replace(/\.note$/, ''); if (d[p] === '有' && !d[e.key]) errs.push({ n: e.key, l: e.label.replace('－說明', '') + '選「有」，請填寫說明' }); } });
@@ -250,7 +258,7 @@ async function transmit(data) {
 
 async function submitResume() {
   if (submitting) return;
-  var errs = validate(), n = $('#notice');
+  var allErrs = validate(), errs = allErrs.filter(function (e) { return !e.quiet; }), n = $('#notice');
   if (errs.length) {
     n.innerHTML = '<div class="banner err"><b>還有 ' + errs.length + ' 項需要補充：</b><ul class="errlist">' + errs.map(function (e) { return '<li><a data-go="' + e.n + '">' + e.l + '</a></li>'; }).join('') + '</ul></div>';
     window.scrollTo({ top: 0, behavior: 'smooth' }); return;

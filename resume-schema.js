@@ -14,7 +14,7 @@
     { id: 'job', n: 1, title: '應徵資料', blocks: [
       { t: 'fields', fields: [
         F('job.title', '應徵職務', 'text', { req: 1 }),
-        F('job.date', '填表日期', 'date', { auto: 'today' }),
+        F('job.date', '填表日期', 'date', { req: 1, auto: 'today' }),
         F('channel', '招募管道', 'radio', { req: 1, wide: 1, opts: ['104人力銀行', '其他網站', '推薦-員工', '推薦-親友', '獵才顧問', '離職回任', '校園活動', '其他'] }),
         F('channel.ref', '推薦人姓名（員工／親友）'),
         F('channel.other', '其他管道說明')
@@ -24,19 +24,19 @@
       { t: 'fields', fields: cat([
         F('photo', '照片', 'photo', { wide: 1 }),
         F('basic.name_zh', '中文姓名', 'text', { req: 1 }),
-        F('basic.name_en', '英文名'),
+        F('basic.name_en', '英文名', 'text', { req: 1 }),
         F('basic.passport', '護照全名'),
-        F('basic.id_no', '身份證字號', 'text', { req: 1, ph: 'A123456789', upper: 1, max: 12 }),
-        F('basic.birth', '出生日期（西元）', 'date', { req: 1 }),
+        F('basic.id_no', '身份證字號', 'text', { ph: 'A123456789', upper: 1, max: 12 }),
+        F('basic.birth', '出生日期（西元）', 'date'),
         F('basic.gender', '性別', 'select', { req: 1, opts: ['男', '女'] }),
         F('basic.marital', '婚姻', 'select', { req: 1, opts: ['單身', '已婚'] }),
         F('basic.military', '兵役', 'select', { opts: ['役畢', '免役', '未役', '不適用'] }),
-        F('basic.nation', '國籍', 'text', { ph: '中華民國' }),
+        F('basic.nation', '國籍', 'text', { req: 1, ph: '中華民國' }),
         F('basic.blood', '血型', 'select', { opts: ['A', 'B', 'O', 'AB'] }),
         F('basic.height', '身高（cm）', 'number'),
         F('basic.weight', '體重（kg）', 'number'),
         F('basic.hobby', '興趣專長', 'text', { wide: 1 }),
-        F('basic.identity', '身分別', 'radio', { opts: ['身心障礙', '原住民', '皆無'], wide: 1 }),
+        F('basic.identity', '身分別', 'radio', { req: 1, opts: ['身心障礙', '原住民', '皆無'], wide: 1 }),
         F('basic.mobile', '行動電話', 'tel', { req: 1, ph: '0912345678' }),
         F('basic.email', 'E-mail', 'email', { req: 1 }),
         F('addr.reg', '戶籍地址', 'text', { req: 1, wide: 1 }),
@@ -44,16 +44,16 @@
         F('addr.same', '通訊地址同戶籍地址', 'check'),
         F('addr.mail', '通訊地址', 'text', { req: 1, wide: 1 }),
         F('addr.mail_tel', '通訊電話', 'tel'),
-        F('emg.name', '緊急連絡人', 'text', { req: 1 }),
-        F('emg.rel', '緊急連絡人關係', 'text', { req: 1 }),
-        F('emg.tel', '緊急連絡人電話', 'tel', { req: 1 })
+        F('emg.name', '緊急連絡人', 'text'),
+        F('emg.rel', '緊急連絡人關係', 'text'),
+        F('emg.tel', '緊急連絡人電話', 'tel')
       ], []) }
     ] },
     { id: 'lang', n: 3, title: '語文能力', hint: '請以數字表示：1 優秀、2 很好、3 好、4 尚可、5 差。', blocks: [
       { t: 'cards', key: 'lang', tbl: 1, view: 'card', ids: [0, 1, 2], names: ['英文', '其他語文1', '其他語文2'], fields: [
         F('name', '語文名稱', 'text', { only: [1, 2] }),
-        F('listen', '聽', 'select', { opts: SC }), F('speak', '說', 'select', { opts: SC }),
-        F('read', '讀', 'select', { opts: SC }), F('write', '寫', 'select', { opts: SC })
+        F('listen', '聽', 'select', { opts: SC, reqOnly: [0] }), F('speak', '說', 'select', { opts: SC, reqOnly: [0] }),
+        F('read', '讀', 'select', { opts: SC, reqOnly: [0] }), F('write', '寫', 'select', { opts: SC, reqOnly: [0] })
       ] }
     ] },
     { id: 'fam', n: 4, title: '家庭狀況', hint: '請填寫主要家庭成員。', blocks: [
@@ -78,7 +78,7 @@
         F('name', '證照／考試名稱'), F('org', '認證單位'), F('ym', '認證年月', 'month'), F('has', '證書', 'select', { opts: ['有', '無'] })
       ] }
     ] },
-    { id: 'ref', n: 8, title: '任用諮詢', hint: '請提供二位可供諮詢之人士並取得其同意，其中一名必須為過去工作中之直屬主管。', blocks: [
+    { id: 'ref', n: 8, title: '任用諮詢', hint: '請提供二位可供諮詢之人士並取得其同意，其中一名必須為過去工作中之直屬主管。至少需完整填寫一位（五個欄位皆須填寫）。', blocks: [
       { t: 'cards', key: 'ref', tbl: 1, view: 'card', ids: [0, 1], names: ['諮詢人1', '諮詢人2'], fields: [
         F('name', '姓名'), F('company', '公司'), F('title', '職稱'), F('tel', '聯絡電話', 'tel'), F('rel', '關係')
       ] }
@@ -98,8 +98,8 @@
     ] },
     { id: 'exp', n: 10, title: '期望待遇與到職', blocks: [
       { t: 'fields', fields: [
-        F('exp.monthly', '期望月全薪（元）', 'number', { req: 1 }), F('exp.annual', '期望年薪（元）', 'number'), F('exp.months', '全年以幾個月計', 'number', { step: '0.1' }),
-        F('exp.start', '可到職日期', 'date', { req: 1 }), F('exp.days', '接獲錄取通知後第幾天開始任職', 'number')
+        F('exp.monthly', '期望月全薪（元）', 'number', { req: 1 }), F('exp.annual', '期望年薪（元）', 'number', { req: 1 }), F('exp.months', '全年以幾個月計', 'number', { step: '0.1' }),
+        F('exp.start', '可到職日期', 'date', { req: 1 }), F('exp.days', '接獲錄取通知後第幾天開始任職', 'number', { req: 1 })
       ] }
     ] },
     { id: 'credit', n: 11, title: '信用資料與關係人', hint: '請如實填寫；選「有」者請於後方說明。', blocks: [
@@ -111,7 +111,7 @@
         yn('rel.noncompete', '4.與前任公司有簽署競業條款（內容簡述）')),
         yn('rel.ip', '5.任職前擁有或涉及智慧財產權（商標、專利、著作、營業秘密）或專門技術（know-how）')) }
     ] },
-    { id: 'decl', n: 12, title: '聲明書', blocks: [
+    { id: 'decl', n: 12, title: '【蒐集、處理及利用個人資料告知事項聲明書】', blocks: [
       { t: 'consent' },
       { t: 'fields', fields: [
         F('consent', '同意個資告知事項', 'check', { req: 1, hidden: 1 }),
@@ -123,6 +123,8 @@
   ];
 
   /* ── 攤平成欄位清單 ── */
+  // 欄位若有 reqOnly（例如只有「英文」那張卡片必填），依卡片順序決定是否必填
+  function cardField(f, i) { return f.reqOnly ? Object.assign({}, f, { req: f.reqOnly.indexOf(i) >= 0 ? 1 : 0 }) : f; }
   var list = [], k2l = {}, l2k = {};
   function add(key, label, f) {
     var e = { key: key, label: label, type: f.type, f: f };
@@ -134,7 +136,7 @@
       if (b.t === 'cards') b.ids.forEach(function (id, i) {
         b.fields.forEach(function (f) {
           if (f.only && f.only.indexOf(i) < 0) return;
-          add(b.key + '.' + id + '.' + f.k, b.names[i] + ' ' + f.l, f);
+          add(b.key + '.' + id + '.' + f.k, b.names[i] + ' ' + f.l, cardField(f, i));
         });
       });
     });
@@ -368,7 +370,7 @@
           b.ids.forEach(function (id, i) {
             body += '<div class="rowcard"><h4>' + b.names[i] + '</h4><div class="grid">' +
               b.fields.filter(function (f) { return !f.only || f.only.indexOf(i) >= 0; })
-                .map(function (f) { return fieldHTML(b.key + '.' + id + '.' + f.k, f, f.l); }).join('') + '</div></div>';
+                .map(function (f) { return fieldHTML(b.key + '.' + id + '.' + f.k, cardField(f, i), f.l); }).join('') + '</div></div>';
           });
         }
       });
