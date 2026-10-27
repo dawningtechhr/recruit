@@ -262,7 +262,7 @@ html,body{height:100%}
             <button class="btn-secondary btn-sm" onclick="loadPdfList()">🔄 重新整理</button>
           </div>
           <div class="tbl-scroll">
-            <table><thead><tr><th>姓名</th><th>個人資料</th><th>人格特質</th><th>邏輯能力</th><th>英文能力</th><th>AI能力</th><th>下載整合PDF</th></tr></thead><tbody id="pdf-body"></tbody></table>
+            <table><thead><tr><th>姓名</th><th>個人資料</th><th>人格特質</th><th>邏輯能力</th><th>英文能力</th><th>AI能力</th><th id="pdf-th-date" onclick="sortPdf()" style="cursor:pointer;user-select:none">面試日期 ⇅</th><th>下載整合PDF</th></tr></thead><tbody id="pdf-body"></tbody></table>
           </div>
           <div id="pdf-empty" style="display:none;text-align:center;color:var(--ink3);padding:40px">尚無符合的求職者</div>
         </div>
@@ -873,7 +873,7 @@ function addCanvasPages(pdf, sec, isFirstSection) {
   }
   return pages;
 }
-var pdfRows = [];
+var pdfRows = [], pdfSort = { by: 'latest', asc: false };
 async function fetchAllRows(table, cols) {
   var all = [];
   for (var from = 0; ; from += 1000) {
@@ -890,7 +890,8 @@ function buildApplicants(src) {
   var groups = {}, order = [];
   function add(kind, r, extra) {
     var name = String(r.name || '').trim(), p = digitsOf(r.phone), key = p.length >= 8 ? 'p' + p : 'n' + name;
-    var g = groups[key]; if (!g) { g = groups[key] = { key: key, name: name, phone: p.length >= 8 ? String(r.phone || '').trim() : '', latest: '', items: {} }; order.push(key); }
+    var g = groups[key]; if (!g) { g = groups[key] = { key: key, name: name, phone: p.length >= 8 ? String(r.phone || '').trim() : '', latest: '', date: '', items: {} }; order.push(key); }
+    var d = String(r.interview_date || '').trim(); if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > g.date) g.date = d;
     var cur = g.items[kind];
     if (!cur || String(r.created_at) > String(cur.created_at)) g.items[kind] = { created_at: r.created_at, v: extra };
     if (String(r.created_at) > g.latest) g.latest = String(r.created_at);
@@ -909,6 +910,7 @@ function buildApplicants(src) {
     var host = groups[cand[0]];
     Object.keys(g.items).forEach(function (kind) { var a = host.items[kind], b = g.items[kind]; if (!a || String(b.created_at) > String(a.created_at)) host.items[kind] = b; });
     if (g.latest > host.latest) host.latest = g.latest;
+    if (g.date > host.date) host.date = g.date;
     delete groups[k];
   });
   return Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return a.latest < b.latest ? 1 : a.latest > b.latest ? -1 : 0; });
@@ -918,10 +920,10 @@ async function loadPdfList() {
   try {
     var res = await Promise.all([
       fetchAllRows('resumes', 'name,mobile,created_at'),
-      fetchAllRows('assessments_personality', 'name,phone,created_at'),
-      fetchAllRows('assessments_logic', 'name,phone,weighted_score,created_at'),
-      fetchAllRows('assessments_english', 'name,phone,weighted_score,created_at'),
-      fetchAllRows('assessments_ai', 'name,phone,mcq_correct,created_at')
+      fetchAllRows('assessments_personality', 'name,phone,interview_date,created_at'),
+      fetchAllRows('assessments_logic', 'name,phone,interview_date,weighted_score,created_at'),
+      fetchAllRows('assessments_english', 'name,phone,interview_date,weighted_score,created_at'),
+      fetchAllRows('assessments_ai', 'name,phone,interview_date,mcq_correct,created_at')
     ]);
     pdfRows = buildApplicants({ resumes: res[0], personality: res[1], logic: res[2], english: res[3], ai: res[4] });
     renderPdfList();
@@ -935,14 +937,27 @@ function renderPdfList() {
   var list = pdfRows.map(function (g, i) { return { g: g, i: i }; }).filter(function (x) {
     return !kw || x.g.name.toLowerCase().indexOf(kw) >= 0 || (kd && digitsOf(x.g.phone).indexOf(kd) >= 0);
   });
+  if (pdfSort.by === 'date') {                       // 依面試日期排序；沒有面試日期的一律排在最後
+    list.sort(function (a, b) {
+      var da = a.g.date, db = b.g.date;
+      if (!da && !db) return 0; if (!da) return 1; if (!db) return -1;
+      return pdfSort.asc ? (da < db ? -1 : da > db ? 1 : 0) : (da < db ? 1 : da > db ? -1 : 0);
+    });
+  }
+  $('pdf-th-date').textContent = '面試日期' + (pdfSort.by === 'date' ? (pdfSort.asc ? ' ▲' : ' ▼') : ' ⇅');
   $('pdf-body').innerHTML = list.map(function (x) {
     var g = x.g, it = g.items;
     return '<tr><td><strong>' + esc(g.name || '（未填姓名）') + '</strong>' + (g.phone ? '<div style="font-size:11px;color:var(--ink3);font-weight:400;font-family:\'JetBrains Mono\',monospace">' + esc(g.phone) + '</div>' : '') + '</td>' +
       '<td>' + (it.resume ? ok : no) + '</td><td>' + (it.personality ? ok : no) + '</td>' +
       '<td>' + score(it.logic, ' 分') + '</td><td>' + score(it.english, ' 分') + '</td><td>' + score(it.ai, ' / 20') + '</td>' +
+      '<td>' + (g.date ? esc(g.date) : '<span style="color:#bbb">—</span>') + '</td>' +
       '<td><button class="btn-primary" onclick="downloadCombinedFor(' + x.i + ', this)">📑 下載整合PDF</button></td></tr>';
   }).join('');
   $('pdf-empty').style.display = list.length ? 'none' : 'block';
+}
+function sortPdf() {
+  if (pdfSort.by === 'date') pdfSort.asc = !pdfSort.asc; else pdfSort = { by: 'date', asc: false };      // 第一次點：新的在上
+  renderPdfList();
 }
 function downloadCombinedFor(i, btn) { var g = pdfRows[i]; if (g) window.dxCombinedPdf(g.name, g.phone, btn); }
 
