@@ -266,15 +266,16 @@ html,body{height:100%}
 <script src="resume-schema.js"></script>
 <script>
 /* ═══════════════ 設定 ═══════════════ */
-// Supabase（連線資訊在 supabase-config.js；個人資料、帳號與操作紀錄都在 Supabase，三個舊測驗仍連各自的 Apps Script）
+// Supabase（連線資訊在 supabase-config.js；個人資料、三個測驗成績、帳號與操作紀錄全部都在 Supabase）
 var sb = supabase.createClient(SB.url, SB.anonKey, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'dx-sb-session' } });
 
-// 四個後台頁面的完整網址（各自部署在不同的 GitHub 倉庫）。
+// 四個後台頁面的完整網址（都放在 recruit 倉庫，與本頁同一個資料夾）。
+// 三個測驗的後台頁只能從這裡內嵌開啟，沒有獨立登入。
 var MODULES = [
   { id: 'resume',      icon: '📝', name: '個人資料',     url: 'https://dawningtechhr.github.io/recruit/resume-admin-sb.html' },
-  { id: 'ai',          icon: '🤖', name: 'AI 能力測驗',  url: 'https://dawningtechhr.github.io/ai-assessment/ai-admin.html' },
-  { id: 'logic',       icon: '🧩', name: '邏輯能力測驗', url: 'https://dawningtechhr.github.io/logic-assessment/logic-admin.html' },
-  { id: 'personality', icon: '🧭', name: '人格特質分析', url: 'https://dawningtechhr.github.io/personality-assessment/admin.html' }
+  { id: 'ai',          icon: '🤖', name: 'AI 能力測驗',  url: 'https://dawningtechhr.github.io/recruit/ai-admin-sb.html' },
+  { id: 'logic',       icon: '🧩', name: '邏輯能力測驗', url: 'https://dawningtechhr.github.io/recruit/logic-admin-sb.html' },
+  { id: 'personality', icon: '🧭', name: '人格特質分析', url: 'https://dawningtechhr.github.io/recruit/personality-admin-sb.html' }
 ];
 
 var $ = function (s) { return document.getElementById(s); };
@@ -387,7 +388,6 @@ function sendAdmin(f) {
   if (!currentAdmin) return;
   var id = Object.keys(frames).filter(function (k) { return frames[k].frame === f; })[0];
   var msg = { type: 'dx-admin', admin: currentAdmin };
-  if (id === 'resume') msg.token = token;       // 只有新的個人資料後台需要 token；三個舊測驗後台不需要，所以不給
   try { f.contentWindow.postMessage(msg, '*'); } catch (e) {}
 }
 window.addEventListener('message', function (e) {
@@ -483,7 +483,7 @@ function showPwBanner() {}
 function hidePwBanner() { var b = $('pw-banner'); if (b) b.style.display = 'none'; }
 var AUDIT_LABELS = { login_ok: '登入成功', login_fail: '登入失敗', logout: '登出', submit: '求職者送出個人資料', submit_ai: 'AI 測驗送出', submit_logic: '邏輯測驗送出', submit_personality: '人格測驗送出',
   list_records: '載入個人資料清單', open_record: '開啟個人資料', open_report: '開啟測驗報告', download_word: '下載 Word', download_pdf: '下載 PDF', print: '列印', edit_record: '編輯個人資料',
-  delete_record: '刪除個人資料', delete_ai: '刪除 AI 測驗', delete_logic: '刪除邏輯測驗', delete_personality: '刪除人格測驗',
+  migrate_import: '舊資料匯入', delete_record: '刪除個人資料', delete_ai: '刪除 AI 測驗', delete_logic: '刪除邏輯測驗', delete_personality: '刪除人格測驗',
   admin_create: '新增管理員', admin_update: '修改管理員', admin_update_password: '修改密碼', admin_reset_password: '重設密碼', admin_delete: '刪除管理員' };
 function fmtTime(s) { try { return new Date(s).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }); } catch (e) { return s || ''; } }
 function niceDetail(s) { return String(s || '').replace(/\b[a-z_]+(?:\.[A-Za-z0-9_]+)+\b/g, function (k) { return (window.RS && RS.keyToLabel[k]) || k; }); }   // 欄位 key 轉成中文名稱

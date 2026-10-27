@@ -1,0 +1,532 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 協作能力測驗</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1a1814;--ink2:#3d3a34;--ink3:#7a7570;--paper:#faf9f6;--paper2:#f2f0eb;--paper3:#e8e5de;--accent:#e8671a;--accent2:#c9540f;--accent-light:#fef3ec;--navy:#1a3a8f;--danger:#8b2020;--warning:#7a5c00;--gold:#c9a227;--radius:4px;--radius-lg:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+.page{display:none;min-height:100vh}.page.active{display:flex;flex-direction:column}
+.serif{font-family:'DM Serif Display',serif}
+input,select,textarea{font-family:'Noto Sans TC',sans-serif;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--paper3);border-radius:var(--radius);padding:10px 14px;width:100%;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,103,26,.12)}
+label{font-size:13px;font-weight:500;color:var(--ink2);display:block;margin-bottom:5px}
+button{font-family:'Noto Sans TC',sans-serif;cursor:pointer;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff;padding:11px 24px}.btn-primary:hover{background:var(--accent2)}.btn-primary:disabled{background:var(--paper3);color:var(--ink3);cursor:not-allowed}
+.btn-secondary{background:transparent;color:var(--ink2);border:1px solid var(--paper3);padding:10px 20px}.btn-secondary:hover{background:var(--paper2)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:12px 18px;border-radius:var(--radius-lg);font-size:14px;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}.toast.show{opacity:1;transform:translateY(0)}.toast.success{background:var(--accent)}.toast.error{background:var(--danger)}
+/* INTRO */
+#pg-intro{background:var(--paper);align-items:center;justify-content:center;padding:40px 20px}
+.intro-wrap{width:100%;max-width:640px}
+.intro-header{text-align:center;margin-bottom:32px}
+.intro-header .serif{font-size:34px;color:var(--ink);line-height:1.2;margin-bottom:8px}
+.intro-header p{font-size:15px;color:var(--ink3);line-height:1.7}
+.intro-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px}
+.intro-card-top{background:linear-gradient(135deg,var(--accent) 0%,var(--accent) 100%);padding:18px 22px;display:flex;align-items:center;gap:14px}
+.intro-card-top .icon-circle{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px}
+.intro-card-top h2{color:#fff;font-size:17px;font-weight:500}.intro-card-top p{color:rgba(255,255,255,.8);font-size:13px}
+.intro-card-body{padding:18px 22px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.info-item{background:var(--paper2);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px}
+.info-item .ii-icon{font-size:18px}.info-item p{font-size:12px;color:var(--ink3);margin-bottom:2px}.info-item strong{font-size:14px;color:var(--ink)}
+.notice-box{background:var(--accent-light);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;padding:11px 14px;font-size:14px;color:var(--ink2);line-height:1.7}
+.form-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:22px;margin-bottom:20px}
+.form-card h3{font-size:15px;font-weight:500;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.form-card h3::before{content:'';display:inline-block;width:3px;height:15px;background:var(--accent);border-radius:2px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.form-group{margin-bottom:14px}
+/* ROLE SELECT */
+#pg-role{background:var(--paper);align-items:center;justify-content:center;padding:40px 20px}
+.role-wrap{width:100%;max-width:540px}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}
+.role-card{background:#fff;border:2px solid var(--paper3);border-radius:var(--radius-lg);padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.role-card:hover{border-color:var(--accent2);background:var(--accent-light)}.role-card.selected{border-color:var(--accent);background:var(--accent-light)}
+.role-card .role-icon{font-size:36px;margin-bottom:12px}.role-card h3{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:6px}.role-card p{font-size:13px;color:var(--ink3);line-height:1.5}
+/* QUIZ */
+#pg-quiz{background:var(--paper);align-items:stretch}
+.quiz-wrap{flex:1;display:flex;flex-direction:column;max-width:700px;margin:0 auto;width:100%;padding:20px}
+.quiz-topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 0;margin-bottom:8px;border-bottom:1px solid var(--paper3)}
+.quiz-topbar img{height:33px;object-fit:contain}
+.qnum{font-size:13px;color:var(--ink3)}.qnum strong{color:var(--ink);font-size:15px}
+.total-time-wrap{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink3)}
+.time-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:var(--ink);background:var(--paper2);padding:3px 9px;border-radius:20px}.time-val.warn{color:var(--danger);background:#fceaea}
+.progress-track{height:3px;background:var(--paper3);border-radius:2px;margin-bottom:18px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s ease}
+.q-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.q-cat-badge{font-size:12px;font-weight:500;padding:3px 11px;border-radius:20px}
+.badge-basic{background:#fef3ec;color:var(--accent)}.badge-mid{background:#fef9e7;color:var(--warning)}.badge-hard{background:#fceaea;color:var(--danger)}.badge-essay{background:#e8f0ff;color:#4a2d8b}
+.timer-wrap{display:flex;align-items:center;gap:8px}
+.timer-svg-wrap{position:relative;width:44px;height:44px}.timer-svg-wrap svg{position:absolute;top:0;left:0}
+.timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--ink)}
+.q-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:14px;min-height:80px}
+.q-card p{font-size:16px;line-height:1.65;color:var(--ink)}
+.opt-btn{width:100%;text-align:left;background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);padding:12px 15px;margin-bottom:8px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:all .15s;color:var(--ink);font-size:15px;line-height:1.5}
+.opt-btn:hover{border-color:var(--accent2);background:var(--accent-light)}.opt-btn.selected{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}.opt-btn.selected .opt-ltr{background:var(--accent);color:#fff;border-color:var(--accent)}
+.opt-ltr{min-width:26px;height:26px;border-radius:50%;border:1.5px solid var(--paper3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;transition:all .15s;flex-shrink:0}
+.essay-area{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px}
+.essay-area textarea{border:none;background:transparent;padding:0;resize:vertical;min-height:140px;font-size:15px;line-height:1.7}.essay-area textarea:focus{box-shadow:none}
+.char-count{font-size:12px;text-align:right;color:var(--ink3);margin-top:4px}.char-count.over{color:var(--danger)}
+.quiz-footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--paper3)}
+#btn-confirm{width:100%;padding:13px;font-size:15px;background:var(--accent);color:#fff;border-radius:var(--radius);border:none;cursor:pointer;font-weight:500;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+#btn-confirm:hover:not(:disabled){background:var(--accent2)}#btn-confirm:disabled{background:var(--paper3);color:var(--ink3);cursor:not-allowed}
+.section-divider{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:24px 22px;margin-bottom:14px;text-align:center}
+.section-divider h3{font-size:17px;font-weight:600;color:var(--ink);margin-bottom:8px}.section-divider p{font-size:14px;color:var(--ink3);line-height:1.7}
+/* DONE */
+#pg-done{align-items:center;justify-content:center;padding:40px 20px;min-height:100vh}
+.done-box{max-width:480px;width:100%;text-align:center}
+.done-icon{width:76px;height:76px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 18px}
+.done-box h2{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:8px}.done-box p{color:var(--ink3);font-size:15px;line-height:1.7;margin-bottom:20px}
+.done-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin-bottom:20px}
+.done-info-item{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);padding:12px}.done-info-item .lbl{font-size:12px;color:var(--ink3);margin-bottom:3px}.done-info-item .val{font-size:14px;font-weight:500}
+</style>
+<script src="supabase-config.js"></script>
+<script src="assessment-sb.js"></script>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- PAGE 1: INTRO -->
+<div class="page active" id="pg-intro">
+  <div class="intro-wrap">
+    <div class="intro-header">
+      <img src="敦新LOGO.webp" alt="敦新科技" style="height:56px;object-fit:contain;margin-bottom:16px">
+      <div class="serif">AI 協作能力測驗</div>
+      <p>AI Collaboration Assessment System</p>
+    </div>
+    <div class="intro-card">
+      <div class="intro-card-top">
+        <div class="icon-circle">🤖</div>
+        <div><h2>測驗說明</h2><p>請詳閱以下說明後填寫資料並開始作答</p></div>
+      </div>
+      <div class="intro-card-body">
+        <div class="info-grid">
+          <div class="info-item"><span class="ii-icon">📝</span><div><p>選擇題</p><strong>20 題（隨機抽題）</strong></div></div>
+          <div class="info-item"><span class="ii-icon">✍️</span><div><p>問答題</p><strong>主管 5 題 / 非主管 3 題</strong></div></div>
+          <div class="info-item"><span class="ii-icon">⏱️</span><div><p>選擇題限時</p><strong>每題 30 秒</strong></div></div>
+          <div class="info-item"><span class="ii-icon">📖</span><div><p>問答題</p><strong>不限時，每題 500 字以內</strong></div></div>
+        </div>
+        <div class="notice-box">
+          📌 選擇題共分三個難度：基本題 10 題、中等難度 5 題、高難度 5 題（每難度從題庫隨機抽取）。每題作答時間 <strong>30 秒</strong>，時間到自動跳下一題。
+        </div>
+      </div>
+    </div>
+    <div class="form-card">
+      <h3>基本資料</h3>
+      <div class="form-row">
+        <div class="form-group"><label>姓名 <span style="color:var(--danger)">*</span></label><input type="text" id="inp-name" placeholder="請輸入真實姓名"></div>
+        <div class="form-group"><label>聯絡電話 <span style="color:var(--danger)">*</span></label><input type="tel" id="inp-phone" placeholder="0912-345-678"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>應徵職務 <span style="color:var(--danger)">*</span></label><input type="text" id="inp-job" placeholder="請輸入應徵職務名稱"></div>
+        <div class="form-group"><label>面試日期 <span style="color:var(--danger)">*</span></label><input type="date" id="inp-date"></div>
+      </div>
+    </div>
+    <button class="btn-primary" style="width:100%;padding:14px;font-size:15px" onclick="goToRole()">下一步：選擇應徵類別 →</button>
+  </div>
+</div>
+
+<!-- PAGE 2: ROLE SELECT -->
+<div class="page" id="pg-role">
+  <div class="role-wrap">
+    <div style="text-align:center;margin-bottom:8px">
+      <img src="敦新LOGO.webp" alt="敦新科技" style="height:48px;object-fit:contain;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto">
+      <div class="serif" style="font-size:22px;color:var(--ink)">請選擇應徵類別</div>
+      <p style="font-size:14px;color:var(--ink3);margin-top:6px">問答題題目將依您的選擇顯示不同面向</p>
+    </div>
+    <div class="role-grid">
+      <div class="role-card" id="role-manager" onclick="selectRole('manager')">
+        <div class="role-icon">👔</div><h3>主管職</h3>
+        <p>部門主管、團隊領導<br>管理職等相關職務</p>
+      </div>
+      <div class="role-card" id="role-staff" onclick="selectRole('staff')">
+        <div class="role-icon">💼</div><h3>非主管職</h3>
+        <p>專員、工程師、設計師<br>一般職員等相關職務</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-secondary" style="flex:1;padding:13px" onclick="showPage('pg-intro')">← 返回</button>
+      <button class="btn-primary" id="btn-start" style="flex:2;padding:13px;font-size:15px" onclick="startTest()" disabled>開始測驗 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: QUIZ -->
+<div class="page" id="pg-quiz">
+  <div class="quiz-wrap">
+    
+    <div class="quiz-topbar">
+      <img src="敦新LOGO.webp" alt="敦新科技" style="height:33px;object-fit:contain">
+      <div class="qnum">第 <strong id="qn-cur">1</strong> 題 / <strong id="qn-tot">35</strong></div>
+      <div class="total-time-wrap"><span>⏱</span><span class="time-val" id="total-timer-val">–</span></div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="quiz-progress" style="width:0%"></div></div>
+    <div class="q-meta">
+      <span class="q-cat-badge badge-basic" id="q-badge">基本題</span>
+      <div class="timer-wrap" id="timer-wrap">
+        <div class="timer-svg-wrap">
+          <svg viewBox="0 0 44 44" width="44" height="44">
+            <circle cx="22" cy="22" r="18" fill="none" stroke="#e8e5de" stroke-width="3"/>
+            <circle id="timer-arc" cx="22" cy="22" r="18" fill="none" stroke="#e8671a" stroke-width="3"
+              stroke-dasharray="113.1" stroke-dashoffset="0" stroke-linecap="round"
+              transform="rotate(-90 22 22)" style="transition:stroke-dashoffset .3s,stroke .3s"/>
+          </svg>
+          <div class="timer-num" id="timer-num">20</div>
+        </div>
+      </div>
+    </div>
+    <div class="q-card"><p id="q-text">題目載入中…</p></div>
+    <div id="options-wrap"></div>
+    <div class="quiz-footer">
+      <button id="btn-confirm" onclick="handleConfirm()">確認作答</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 4: DONE -->
+<div class="page" id="pg-done">
+  <div class="done-box">
+    <img src="敦新LOGO.webp" alt="敦新科技" style="height:52px;object-fit:contain;margin-bottom:20px">
+    <div class="done-icon">✅</div>
+    <h2>測驗完成，感謝您！</h2>
+    <p>您的 AI 協作能力測驗已成功提交。<br>人資部門將在面試時與您討論測驗結果。</p>
+    <div class="done-info-grid" id="done-info-grid"></div>
+    <div style="background:var(--accent-light);border-radius:var(--radius-lg);padding:16px;font-size:14px;color:var(--ink2);line-height:1.7">
+      📋 所有答題資料已記錄完成。您可以關閉此頁面，等待面試通知。
+    </div>
+  </div>
+</div>
+
+<script>
+const Q_TIME = 30; // 每題限時秒數
+const LOGO_B64 = 'data:image/webp;base64,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';
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img[alt="敦新科技"]').forEach(function(el){el.src=LOGO_B64;});});
+
+// ── 題庫（2026-10 更新：以 AI 代理、MCP、上下文工程、AI 治理與資安等最新議題重新命題）──
+const BASIC_BANK = [{"level": "basic", "c": "AI基礎", "q": "「生成式 AI」與傳統只做分類、預測的 AI，最大的差別是什麼？", "opts": ["能依提示產出新的文字、圖像、程式碼等內容", "只能處理表格中的數字資料", "必須搭配實體機器人才能運作", "不需要任何訓練資料就能運作"], "ans": 0}, {"level": "basic", "c": "AI基礎", "q": "大型語言模型（LLM）主要是如何學會語言能力的？", "opts": ["由工程師逐條撰寫文法與語意規則", "以大量文本訓練，學習預測接下來最合理的詞元", "每次回答時即時複製網頁內容", "只靠人工客服事先錄製的對話腳本"], "ans": 1}, {"level": "basic", "c": "AI基礎", "q": "AI 的「幻覺（Hallucination）」指的是什麼現象？", "opts": ["AI 回應速度突然變得很慢", "AI 畫面出現亂碼或無法顯示", "以流暢口吻產出看似合理、實際不正確或虛構的內容", "AI 拒絕回答所有問題"], "ans": 2}, {"level": "basic", "c": "AI基礎", "q": "與 AI 對話時，「提示詞（Prompt）」指的是什麼？", "opts": ["AI 內部儲存的模型權重檔案", "AI 服務提供的付費方案名稱", "AI 回答後附上的免責聲明", "使用者提供給 AI 的指令、問題與背景資訊"], "ans": 3}, {"level": "basic", "c": "AI工具", "q": "想讓 AI 產出更貼近需求的內容，下列哪種提示方式最好？", "opts": ["說明任務目的、對象、輸出格式與限制條件", "只輸入一個關鍵字讓 AI 自行發揮", "要求 AI「隨便寫就好」以節省時間", "把問題縮到越短越好"], "ans": 0}, {"level": "basic", "c": "AI工具", "q": "下列哪一項屬於對話式 AI 助理？", "opts": ["印表機的驅動程式", "ChatGPT、Claude、Gemini 等", "防毒軟體的病毒碼更新", "網路交換器的管理介面"], "ans": 1}, {"level": "basic", "c": "AI基礎", "q": "「多模態（Multimodal）AI」指的是模型能做到什麼？", "opts": ["只能處理單一語言的文字", "同時連接多台電腦進行運算", "同時理解或產生文字、圖片、聲音等多種形式的內容", "一次只能執行一項工作"], "ans": 2}, {"level": "basic", "c": "AI基礎", "q": "AI 回答中給了一個具體統計數字卻沒附來源，較正確的做法是？", "opts": ["直接引用，因為 AI 回答很自信", "加上「據說」兩字後放進報告", "請 AI 再說一次，內容一致就算驗證", "回查可靠來源確認後，再決定是否使用"], "ans": 3}, {"level": "basic", "c": "AI風險", "q": "下列哪項資料不應直接貼到公開的免費 AI 工具？", "opts": ["客戶個資與尚未公開的公司財務資料", "已公開發布的新聞稿", "一般常識性的問題", "已公開的產品規格表"], "ans": 0}, {"level": "basic", "c": "AI基礎", "q": "「AI 代理（AI Agent）」與一般聊天機器人最主要的差別是？", "opts": ["只能以語音方式與人互動", "能為達成目標自行規劃步驟，並呼叫工具執行任務", "不需要連上網路也能運作", "回答速度一定比聊天機器人快"], "ans": 1}, {"level": "basic", "c": "AI基礎", "q": "語言模型中的「Token（詞元）」通常指什麼？", "opts": ["使用者登入 AI 服務的身分驗證碼", "模型回答的可信度分數", "模型處理文字的基本單位，也是長度限制與計費的依據", "雲端主機的硬體編號"], "ans": 2}, {"level": "basic", "c": "AI基礎", "q": "「上下文視窗（Context Window）」指的是什麼？", "opts": ["AI 工具在螢幕上的顯示範圍", "模型一天可被使用的次數", "使用者可開啟的對話視窗數量", "模型單次能一併處理的輸入與輸出內容量上限"], "ans": 3}, {"level": "basic", "c": "AI工具", "q": "用 AI 把會議逐字稿整理成重點與待辦事項，屬於哪類應用？", "opts": ["摘要與資訊萃取", "影像辨識", "語音合成", "推薦系統"], "ans": 0}, {"level": "basic", "c": "AI風險", "q": "用 AI 生成圖片做對外行銷素材前，至少應確認什麼？", "opts": ["圖片檔案的副檔名是否為 PNG", "工具的商用授權條款，以及是否侵害他人著作或肖像", "圖片生成花了多少運算時間", "圖片是否使用了最鮮豔的色彩"], "ans": 1}, {"level": "basic", "c": "AI風險", "q": "「深偽（Deepfake）」指的是什麼？", "opts": ["一種加密資料的演算法", "把影片壓縮成較小檔案的技術", "以 AI 合成逼真的人臉、聲音或影片，可能被用於詐騙或造謠", "偵測網路攻擊的防火牆"], "ans": 2}, {"level": "basic", "c": "AI風險", "q": "接到疑似主管本人的語音訊息，要求緊急匯款，首要做法是什麼？", "opts": ["聲音很像就直接照辦", "要求對方傳一張照片即可", "先匯一小筆金額測試", "改用原本已知的可信管道（如回撥既有電話）再確認"], "ans": 3}, {"level": "basic", "c": "AI基礎", "q": "把語音自動轉成文字，屬於 AI 的哪種常見應用？", "opts": ["語音辨識", "機器翻譯", "資料探勘", "影像分割"], "ans": 0}, {"level": "basic", "c": "AI基礎", "q": "影音平台依你的觀看紀錄推薦影片，主要依據的是什麼？", "opts": ["平台員工的個人喜好", "使用者過往行為與偏好資料", "影片的檔案大小", "使用者的手機品牌"], "ans": 1}, {"level": "basic", "c": "AI協作", "q": "下列何者最能描述「AI 素養」？", "opts": ["會寫程式並自行訓練大型模型", "能背誦所有 AI 工具的功能清單", "理解 AI 能做什麼、不能做什麼，並能安全負責地使用", "只要會使用任一個聊天機器人即可"], "ans": 2}, {"level": "basic", "c": "AI協作", "q": "用 AI 翻譯合約重點條款後，較適當的下一步是？", "opts": ["直接簽署，因為 AI 翻譯很專業", "再用另一個 AI 翻回原文，相同就沒問題", "只檢查標點符號與排版", "由熟悉內容的人檢查關鍵條款是否正確"], "ans": 3}, {"level": "basic", "c": "AI基礎", "q": "「推理模型」的特點通常是什麼？", "opts": ["回答前會先進行較長的內部思考，適合數學、程式與複雜分析", "只能進行簡單的閒聊", "必須完全離線才能執行", "只能生成圖片，不能處理文字"], "ans": 0}, {"level": "basic", "c": "AI工具", "q": "具備網路搜尋功能的 AI 助理，相較只靠內建知識回答，優點是什麼？", "opts": ["回答一定完全正確，無須查證", "可結合較新的網路資料並附上來源連結，便於查證", "不會受到任何提示詞影響", "不需要網路也能取得最新消息"], "ans": 1}, {"level": "basic", "c": "AI工具", "q": "在提示中要求「請用表格呈現比較結果」，屬於哪項提示要素？", "opts": ["提供背景資料", "設定角色身分", "指定輸出格式", "限制回答語言"], "ans": 2}, {"level": "basic", "c": "AI協作", "q": "在公司開始使用 AI 工具前，第一步最適合做什麼？", "opts": ["先申請最多人推薦的免費帳號", "把所有資料上傳以測試效果", "等同事都用了再說", "了解並遵守公司的 AI 使用規範與資安政策"], "ans": 3}, {"level": "basic", "c": "AI協作", "q": "把 AI 生成的內容放進正式簡報時，較妥適的態度是什麼？", "opts": ["視為初稿，查核事實並補上來源後再使用", "原封不動使用，以節省時間", "只改標題，內文不用看", "刪除所有數字避免出錯"], "ans": 0}, {"level": "basic", "c": "AI工具", "q": "可上傳自有文件，再針對文件內容問答的 AI 工具，主要好處是什麼？", "opts": ["可以不用再閱讀任何文件", "回答能聚焦在所提供資料，並方便對照原文", "保證不會出現任何錯誤", "可自動取得其他公司的內部文件"], "ans": 1}, {"level": "basic", "c": "AI工具", "q": "請 AI 協助寫 Excel 公式，最有效的描述方式是什麼？", "opts": ["只說「幫我寫公式」", "只貼上整份檔案不加說明", "說明欄位內容、資料範例與想得到的結果", "要求 AI 猜測你想做什麼"], "ans": 2}, {"level": "basic", "c": "AI基礎", "q": "同樣的提示詞，AI 每次回答可能略有不同，原因是什麼？", "opts": ["AI 每次都隨機忘記先前學過的內容", "網路連線品質不同導致內容改變", "使用者的帳號等級每次都不一樣", "模型生成帶有機率性，相同提示未必得到完全相同的結果"], "ans": 3}, {"level": "basic", "c": "AI協作", "q": "什麼情況下，開啟新對話比在同一個長對話中繼續追問更合適？", "opts": ["要切換到完全不同的主題，避免舊內容干擾", "每一個問題都應開新對話", "對話已超過 10 分鐘就必須重開", "AI 回答正確時"], "ans": 0}, {"level": "basic", "c": "AI風險", "q": "使用 AI 的即時語音對話功能時，較需要注意什麼？", "opts": ["語音一定不會被任何人聽到", "避免在公共場合口述機密或個資", "語音內容不屬於個人資料", "只要音量小就沒有風險"], "ans": 1}];
+const MID_BANK   = [{"level": "mid", "c": "AI工具", "q": "「MCP（Model Context Protocol）」的主要用途是什麼？", "opts": ["提供 AI 應用連接外部工具與資料來源的開放標準介面", "加速顯示卡的運算速度", "壓縮模型參數以縮小檔案", "替代網站的登入驗證機制"], "ans": 0}, {"level": "mid", "c": "AI工具", "q": "AI 的「工具使用／函式呼叫（Tool Use）」指的是什麼？", "opts": ["模型自行修改自己的訓練資料", "模型產生結構化指令，由系統去執行查詢資料庫、寄信等動作", "使用者手動複製貼上結果給模型", "模型把工具的原始碼背下來"], "ans": 1}, {"level": "mid", "c": "AI協作", "q": "「上下文工程（Context Engineering）」較貼切的描述是什麼？", "opts": ["專門調整網頁畫面的排版設計", "把模型部署到雲端伺服器的技術", "設計並管理提供給模型的指示、資料、記憶與工具，使其穩定完成任務", "只針對單句提示詞做文字潤飾"], "ans": 2}, {"level": "mid", "c": "AI工具", "q": "在提示詞中指定「角色與受眾」，主要好處是什麼？", "opts": ["讓模型自動取得更多訓練資料", "保證輸出內容一定正確", "減少模型消耗的運算資源", "讓語氣、深度與用詞更符合使用情境"], "ans": 3}, {"level": "mid", "c": "AI工具", "q": "想讓 AI 的輸出能被程式直接讀取，較佳做法是什麼？", "opts": ["要求固定的 JSON 或表格格式，並提供範例", "要求 AI 用最口語的方式描述", "限制 AI 只能回答是或否", "讓 AI 自由發揮再人工整理"], "ans": 0}, {"level": "mid", "c": "AI基礎", "q": "把模型的 Temperature（溫度）參數調低，通常會有什麼效果？", "opts": ["輸出更有創意、變化更大", "輸出較穩定、保守，重複性較高", "模型回應速度變快三倍", "模型可處理的內容變長"], "ans": 1}, {"level": "mid", "c": "AI基礎", "q": "「小型語言模型／裝置端模型」的主要優勢是什麼？", "opts": ["在所有任務上都比大型模型更準確", "能自動連結全世界的資料庫", "成本與延遲較低，資料也可留在本機，利於隱私", "不需要任何電力運算"], "ans": 2}, {"level": "mid", "c": "AI策略", "q": "企業要讓助理引用經常更新的內部規章，較適合採用哪種方式？", "opts": ["每次規章變動就重新訓練整個模型", "把規章全文塞進每一次提示詞", "禁止助理回答規章問題", "RAG，更新文件即可，不必重新訓練模型"], "ans": 3}, {"level": "mid", "c": "AI基礎", "q": "某模型在公開「基準測試」得分很高，這代表什麼？", "opts": ["在該測試表現佳，但不等於在你的實際任務同樣可靠", "在所有工作情境都一定最好", "一定比其他所有模型便宜", "可以省略自行驗證的步驟"], "ans": 0}, {"level": "mid", "c": "AI策略", "q": "導入 AI 前建立「評測集（Evals）」的目的是什麼？", "opts": ["讓模型自動變得更聰明", "用代表性案例與評分標準，持續檢驗輸出品質", "取代所有人工審核", "增加提示詞的長度"], "ans": 1}, {"level": "mid", "c": "AI協作", "q": "用 AI 協助撰寫的程式碼，上線到正式環境前應該做什麼？", "opts": ["因為是 AI 寫的，直接部署即可", "只要能執行一次就算通過", "進行程式碼審查、測試與安全掃描", "刪除所有註解以免被發現"], "ans": 2}, {"level": "mid", "c": "AI風險", "q": "「間接提示詞注入」指的是什麼？", "opts": ["駭客直接猜出使用者的登入密碼", "使用者自己輸入了錯誤的提示詞", "模型因硬體故障而輸出亂碼", "惡意指令藏在網頁、郵件或文件中，被 AI 讀取後誤當成指令執行"], "ans": 3}, {"level": "mid", "c": "AI風險", "q": "讓 AI 代理存取公司系統時，應遵循什麼權限原則？", "opts": ["最小權限，限制可執行的動作與可存取的資料範圍", "一次給予最高權限，避免中斷", "共用一組管理員帳號最方便", "由代理自行決定需要哪些權限"], "ans": 0}, {"level": "mid", "c": "AI協作", "q": "AI 代理流程中的「人在迴路（Human-in-the-loop）」是什麼意思？", "opts": ["由人員全程手動重做所有步驟", "付款、刪除等高風險動作須由人員確認後才執行", "AI 每完成一步就自動重新啟動", "只有工程師可以使用代理"], "ans": 1}, {"level": "mid", "c": "AI風險", "q": "將資料送交 AI 前先做「遮罩／去識別化」，目的是什麼？", "opts": ["讓資料檔案變得更小", "提升模型的回答創意", "移除或替換個資與機敏欄位，降低洩漏風險", "避免資料被使用者看到"], "ans": 2}, {"level": "mid", "c": "AI風險", "q": "企業版 AI 服務與個人免費版的常見差異，下列何者較正確？", "opts": ["企業版的回答一定不會出錯", "個人版無法輸入中文", "兩者在資料保護上沒有任何差別", "提供資料不用於訓練的承諾、管理控制與稽核紀錄"], "ans": 3}, {"level": "mid", "c": "AI風險", "q": "AI 用於履歷篩選時，「偏見」的風險是什麼？", "opts": ["歷史資料若帶有偏見，模型可能對特定族群產生不公平的評分", "模型會因為履歷太長而當機", "模型一定比人更公平客觀", "履歷的字體會影響模型運算"], "ans": 0}, {"level": "mid", "c": "AI風險", "q": "在影響個人權益的決策中，AI 的「可解釋性」為何重要？", "opts": ["可以讓模型運算更快", "需要能說明判斷依據，讓當事人與稽核可以檢視", "讓模型的參數量變得更少", "只是為了讓介面更好看"], "ans": 1}, {"level": "mid", "c": "AI風險", "q": "「Shadow AI」指的是什麼？", "opts": ["AI 在夜間自動執行的排程", "AI 生成的影子般的圖片效果", "員工未經核准，自行使用 AI 工具處理公司資料", "公司內部開發的 AI 平台"], "ans": 2}, {"level": "mid", "c": "AI基礎", "q": "「多代理（Multi-agent）」系統的概念是什麼？", "opts": ["同一個代理被複製到多台電腦", "多位使用者共用同一個帳號", "把多個模型合併成一個檔案", "多個分工不同的 AI 代理協同完成較複雜的任務"], "ans": 3}, {"level": "mid", "c": "AI基礎", "q": "擁有很長的上下文視窗，是否代表模型一定能精準運用所有內容？", "opts": ["不一定，關鍵資訊仍可能被忽略，輸入宜精簡並結構化", "是，內容再長都不會漏掉", "是，而且完全不會再產生幻覺", "否，因為長內容會被模型自動刪除"], "ans": 0}, {"level": "mid", "c": "AI協作", "q": "請 AI 在回答時「先列出假設與不確定之處」，作用是什麼？", "opts": ["讓 AI 的答案一定正確", "方便人員發現可能的錯誤並針對性查證", "縮短 AI 的回答長度", "避免 AI 使用任何工具"], "ans": 1}, {"level": "mid", "c": "AI工具", "q": "用 AI 擷取發票欄位自動建檔，較需要搭配什麼控管？", "opts": ["完全不需覆核，以加快速度", "只在月底檢查一次", "抽樣覆核與例外處理機制，應對辨識錯誤", "把所有發票改為手寫"], "ans": 2}, {"level": "mid", "c": "AI協作", "q": "團隊建立「提示詞範本庫」的價值是什麼？", "opts": ["讓每個人都使用完全相同的語句", "取代所有人員的專業判斷", "減少模型的運算成本", "沉澱有效做法、提高一致性並縮短新人上手時間"], "ans": 3}, {"level": "mid", "c": "AI策略", "q": "與傳統 RPA 相比，AI 代理較擅長什麼？", "opts": ["處理較彈性、非結構化資訊的任務判斷", "在固定規則下重複精確操作", "完全不需要任何設定", "只能操作單一軟體"], "ans": 0}, {"level": "mid", "c": "AI策略", "q": "在辦公軟體中導入 AI 助理，效益高低很大程度取決於什麼？", "opts": ["員工的打字速度", "底層文件與資料是否整理良好，以及權限設定是否正確", "螢幕解析度", "會議室的網路頻寬"], "ans": 1}, {"level": "mid", "c": "AI風險", "q": "「內容來源標示（如 C2PA）」這類機制的用途是什麼？", "opts": ["提高圖片的解析度", "自動翻譯圖片中的文字", "協助辨識內容是否由 AI 生成或曾被修改", "加速影片的上傳速度"], "ans": 2}, {"level": "mid", "c": "AI風險", "q": "對於 AI 生成內容的著作權，實務上較穩妥的做法是什麼？", "opts": ["一律認定 AI 生成內容受完整著作權保護", "一律認定可任意商用，無須確認", "把 AI 生成內容標成員工原創即可", "確認工具條款與適用法規，重要內容保留人類實質創作與修改紀錄"], "ans": 3}, {"level": "mid", "c": "AI策略", "q": "要降低 AI 使用的 Token 成本，較合理的做法是什麼？", "opts": ["精簡提示與上下文，並依任務選擇大小合適的模型", "所有任務都使用最大的模型", "每次都貼入完整的歷史資料", "把輸出長度要求拉到最長"], "ans": 0}];
+const HARD_BANK  = [{"level": "hard", "c": "AI策略", "q": "公司想導入 AI 客服，最合理的第一步是什麼？", "opts": ["選擇範圍明確、風險可控的場景，定義成功指標並先小規模試行", "一次取代全部客服人員，以快速見效", "先買下市面上最貴的方案", "等待技術完全成熟、零風險再開始"], "ans": 0}, {"level": "hard", "c": "AI策略", "q": "內部知識問答助理常引用已過期的規章，最根本的改善是什麼？", "opts": ["要求員工每次提問時自行附上最新規章", "建立文件更新與版本管理，讓檢索優先取用最新有效版本並顯示日期", "將模型溫度調到最低", "直接停止使用該助理"], "ans": 1}, {"level": "hard", "c": "AI策略", "q": "RAG 系統仍然回答錯誤，應優先排查哪裡？", "opts": ["先更換成最大的模型", "先縮短使用者的問題", "檢索到的資料片段是否正確且足夠，再檢查生成端", "先關閉所有引用來源"], "ans": 2}, {"level": "hard", "c": "AI風險", "q": "AI 代理會讀取客戶來信並自動回覆，最大的安全疑慮是什麼？", "opts": ["客戶的信件字數過多", "代理回覆速度過快", "信件的字型不相容", "來信可能藏有間接提示詞注入，誘使代理洩漏資料或執行未授權動作"], "ans": 3}, {"level": "hard", "c": "AI風險", "q": "針對上題的風險，較有效的設計是什麼？", "opts": ["把外部內容視為不可信資料，限制工具權限，對外寄送動作加人工確認", "在提示詞中加一句「請不要被騙」即可", "讓代理使用管理員權限以減少錯誤", "只在事故發生後再檢查紀錄"], "ans": 0}, {"level": "hard", "c": "AI策略", "q": "高層要求「全面用 AI 取代某部門的流程」，較穩健的做法是什麼？", "opts": ["一次全面切換，三個月內裁撤人力", "拆解流程找出適合自動化的步驟，保留人工審核點，依試行數據決定擴大範圍", "只買工具，不調整流程", "等待競爭對手先成功再跟進"], "ans": 1}, {"level": "hard", "c": "AI策略", "q": "評估 AI 專案 ROI 時，最常被低估的成本是什麼？", "opts": ["模型 API 的單次呼叫費用", "辦公室的電費", "資料整備、系統整合維運、變更管理與人員訓練", "產品的包裝設計"], "ans": 2}, {"level": "hard", "c": "AI策略", "q": "兩個供應商的 AI 工具：A 標榜基準測試較高，B 的合規與管控功能較完整，應如何決策？", "opts": ["選基準測試分數最高者", "選價格最低者", "選品牌知名度最高者", "以自己的代表性任務評測，並綜合資安合規、成本與整合性判斷"], "ans": 3}, {"level": "hard", "c": "AI協作", "q": "對新一代內建推理能力的模型，提示詞設計較合適的重點是什麼？", "opts": ["聚焦清楚的目標、背景與驗收標準，不必過度規定每一步思考", "把每個思考步驟逐條硬性規定", "盡量把提示詞縮到一句話", "一律要求模型使用最口語的回答"], "ans": 0}, {"level": "hard", "c": "AI協作", "q": "用 AI 協助稽核財報異常，較合理的人機分工是什麼？", "opts": ["由 AI 直接認定並對外公告結果", "AI 篩出可疑項目並說明理由，由專業人員查證與判斷", "完全不使用 AI，因為不夠精確", "由 AI 自行修改帳務紀錄"], "ans": 1}, {"level": "hard", "c": "AI風險", "q": "發現員工把含客戶名單的 Excel 貼到個人帳號的 AI 工具，應如何處理？", "opts": ["只口頭提醒，不需要紀錄", "要求員工自行刪除對話即可結案", "依資安事件程序通報，評估外洩範圍，並檢討授權工具與教育訓練", "僅懲處該員工，不改流程"], "ans": 2}, {"level": "hard", "c": "AI協作", "q": "模型版本更新後，原本穩定的提示詞輸出品質改變，最佳對策是什麼？", "opts": ["忽略變化，因為模型會自己改善", "立即停用所有 AI 工具", "每個人各自重新摸索提示詞", "以既有評測集做回歸測試，必要時調整提示詞並做版本管理"], "ans": 3}, {"level": "hard", "c": "AI風險", "q": "企業要透過外部 AI API 處理含個資的資料，法遵面最需先確認什麼？", "opts": ["資料處理地點、保存與是否用於訓練的條款，並完成合約與法遵審查", "API 回應是否夠快", "供應商官網是否設計精美", "是否有免費試用期"], "ans": 0}, {"level": "hard", "c": "AI風險", "q": "在招募流程使用 AI 輔助篩選履歷，最適當的控管是什麼？", "opts": ["由 AI 全自動決定錄取與否", "僅作輔助，定期檢測結果是否不公，保留人工複核與申訴管道", "不告知應徵者，也不留任何紀錄", "只用來自動拒絕前 50% 的人"], "ans": 1}, {"level": "hard", "c": "AI策略", "q": "供應商宣稱「我們的 AI 準確率 95%」，最需要追問什麼？", "opts": ["這個數字的字體大小", "公司成立多久", "是在什麼資料、如何定義，以及錯誤的代價與分布", "其他客戶有沒有登入"], "ans": 2}, {"level": "hard", "c": "AI風險", "q": "AI 代理在迴圈中重複呼叫工具導致費用暴增，較合理的對策是什麼？", "opts": ["增加更多代理一起處理", "取消所有費用警示", "把權限放寬以減少錯誤", "設定步數與預算上限、停止條件並加強監控"], "ans": 3}, {"level": "hard", "c": "AI協作", "q": "多代理流程輸出錯誤卻難以除錯，最可能缺少什麼？", "opts": ["執行紀錄與中間結果的追蹤（可觀測性）", "更大的螢幕", "更長的提示詞", "更多的代理數量"], "ans": 0}, {"level": "hard", "c": "AI風險", "q": "AI 用於醫療、法律等高風險領域時，較適合的管理框架是什麼？", "opts": ["與低風險場景採用同樣的寬鬆規則", "依風險分級管理，提高人員審核、紀錄與驗證要求", "只要使用者簽署同意書即可", "完全交由 AI 自行判斷"], "ans": 1}, {"level": "hard", "c": "AI協作", "q": "面對 AI 能力快速進步，知識工作者最能長期保值的能力是什麼？", "opts": ["背誦大量固定的知識", "打字速度", "問題定義、判斷驗證與跨領域脈絡理解", "記住各工具的所有按鈕位置"], "ans": 2}, {"level": "hard", "c": "AI協作", "q": "主管推動 AI，但成員擔心被取代，較有效的作法是什麼？", "opts": ["強制所有人在期限內使用並計入考績", "避免討論，等成員自行適應", "只讓少數人使用，其餘不告知", "說明用途與界線，選定場景共同試用，並提供培訓與角色轉換路徑"], "ans": 3}, {"level": "hard", "c": "AI協作", "q": "提示詞中同時出現互相矛盾的指令，可能的結果與處理方式是什麼？", "opts": ["模型可能不穩定地擇一遵循，應整併並明訂優先順序", "模型會自動判斷出你真正的需求", "模型一定會拒絕回答", "矛盾愈多，輸出愈精準"], "ans": 0}, {"level": "hard", "c": "AI協作", "q": "分析長文件時，要求 AI 附上引用的原文段落，主要目的是什麼？", "opts": ["讓回答變得更長", "便於驗證內容並降低憑空捏造", "增加模型的運算量", "避免使用者閱讀原文"], "ans": 1}, {"level": "hard", "c": "AI策略", "q": "大量、重複的分類任務，改用較小的模型時，應該怎麼考量？", "opts": ["一定要用最大的模型，品質才有保證", "小模型不能用於任何正式任務", "在達到品質門檻的前提下，以較小模型降低成本與延遲", "只看價格，不用驗證品質"], "ans": 2}, {"level": "hard", "c": "AI風險", "q": "為了降低 AI 輸出個資外洩的風險，較完整的防護是什麼？", "opts": ["只依賴使用者自行小心", "把所有資料公開以避免爭議", "禁止任何人查看紀錄", "在輸入與輸出兩端加上過濾與稽核，並搭配權限控管"], "ans": 3}, {"level": "hard", "c": "AI策略", "q": "公司要建立 AI 治理機制，最先該做的是什麼？", "opts": ["盤點使用場景與資料，指定責任人並訂定分級的使用政策", "先對外發布新聞稿", "先採購大量運算設備", "等到發生事故再訂規則"], "ans": 0}, {"level": "hard", "c": "AI協作", "q": "客戶發現 AI 生成報告中的數據有誤，責任歸屬較合理的看法是什麼？", "opts": ["全部是 AI 的錯，與交付者無關", "交付者仍須為內容負責，應建立覆核流程", "客戶應自行查核每個數字", "只要在報告加註「AI 生成」就免責"], "ans": 1}, {"level": "hard", "c": "AI策略", "q": "什麼情況較適合用 AI 代理，而不是固定流程？", "opts": ["步驟明確且可預期、每次都相同", "只需要把資料從 A 搬到 B", "任務路徑不固定、需要動態判斷與使用多種工具", "需要毫秒級的穩定回應"], "ans": 2}, {"level": "hard", "c": "AI風險", "q": "供應商要求提供大量歷史資料來微調模型，你應先做什麼？", "opts": ["先把所有資料交出，以加快專案", "只要供應商口頭保證即可", "直接公開資料給所有供應商競標", "確認資料權屬、去識別化與保密條款，並評估 RAG 是否已足夠"], "ans": 3}, {"level": "hard", "c": "AI協作", "q": "用另一個 LLM 當「評審」來為輸出評分，主要的風險是什麼？", "opts": ["評審模型本身有偏好與誤判，需以人工標註抽樣校準", "評審模型一定比人更客觀", "評審模型不需任何驗證", "會讓被評分的模型變笨"], "ans": 0}, {"level": "hard", "c": "AI風險", "q": "在企業情境中，降低 AI 幻覺影響最有效的系統性作法是什麼？", "opts": ["把溫度調到最高以增加多樣性", "結合檢索佐證、要求引用、輸出驗證，並在關鍵處保留人工覆核", "相信 AI 的自信語氣", "禁止員工查證 AI 的回答"], "ans": 1}];
+const ESSAY      = {"manager": [{"q": "你目前在工作中實際使用過哪些 AI 工具（如對話助理、AI 搜尋、AI 代理或自動化工具）？請具體說明工具名稱、使用情境，以及你如何確認輸出內容的正確性。"}, {"q": "AI 工具已從「回答問題」進展到能自行規劃並執行任務的 AI 代理。身為主管，你認為團隊在導入代理前需要建立哪些規範與權限控管？請舉例說明。"}, {"q": "如果公司要導入 AI，你會優先從哪個流程開始？請說明選擇依據、如何定義成功指標，以及你會如何降低資料外洩與錯誤輸出的風險。"}, {"q": "請描述你如何帶領團隊學習並使用 AI 工具：包含如何處理成員的抗拒或擔憂、如何避免員工私自使用未授權工具，以及如何評估學習與導入成效。"}, {"q": "未來三年，你認為 AI 對你所在產業與職位最大的改變是什麼？你會如何調整團隊的分工與人才培養方向？"}], "staff": [{"q": "你目前在工作中實際使用過哪些 AI 工具（如對話助理、AI 搜尋或自動化工具）？請具體說明工具名稱、使用情境，以及你如何確認輸出內容的正確性。"}, {"q": "當出現新的 AI 工具或新功能時，你會如何評估它是否值得使用？請說明你的學習方式、試用步驟，以及如何注意資料安全。"}, {"q": "如果主管要求你用 AI 改善某項重複性的工作流程，你會怎麼做？請說明你的分析方式、行動步驟，以及如何評估改善成效並處理 AI 出錯的情況。"}]};
+
+// ── 隨機抽題（不重複）──
+function sampleN(arr, n) {
+  var a = arr.slice();
+  for (var i = a.length-1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i+1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a.slice(0, n);
+}
+
+// ── State ──
+var testState = null;
+var selectedRole = null;
+var userInfo = {};
+
+function showPage(id) {
+  var pages = document.querySelectorAll('.page');
+  for (var pi=0; pi<pages.length; pi++) pages[pi].classList.remove('active');
+  document.getElementById(id).classList.add('active');
+}
+function showToast(msg, type='') {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(function(){ t.className='toast'; }, 3200);
+}
+
+function goToRole() {
+  var name  = document.getElementById('inp-name').value.trim();
+  var phone = document.getElementById('inp-phone').value.trim();
+  var job   = document.getElementById('inp-job').value.trim();
+  var date  = document.getElementById('inp-date').value;
+  if (!name||!phone||!job||!date) { showToast('請填寫所有必填欄位','error'); return; }
+  userInfo = {name, phone, job, date};
+  showPage('pg-role');
+}
+
+function selectRole(role) {
+  selectedRole = role;
+  document.getElementById('role-manager').classList.toggle('selected', role==='manager');
+  document.getElementById('role-staff').classList.toggle('selected', role==='staff');
+  document.getElementById('btn-start').disabled = false;
+}
+
+function startTest() {
+  if (!selectedRole) { showToast('請先選擇應徵類別','error'); return; }
+  // 隨機抽題：每個難度各 10 題
+  var basic = sampleN(BASIC_BANK, 10);
+  var mid   = sampleN(MID_BANK,    5);
+  var hard  = sampleN(HARD_BANK,   5);
+  var allMcqSrc = basic.concat(mid).concat(hard);
+  var mcq = [];
+  for (var mi = 0; mi < allMcqSrc.length; mi++) {
+    var mq = allMcqSrc[mi];
+    mcq.push({ c:mq.c, q:mq.q, opts:mq.opts, ans:mq.ans, level:mq.level, type:'mcq', globalIdx:mi });
+  }
+  var essaySrc = ESSAY[selectedRole];
+  var essay = [];
+  for (var ei = 0; ei < essaySrc.length; ei++) {
+    essay.push({ q:essaySrc[ei].q, type:'essay', idx:ei });
+  }
+  var allQs = mcq.concat(essay);
+
+  testState = {
+    questions: allQs,
+    qIdx: 0,
+    answers: new Array(allQs.length).fill(null),
+    essayAnswers: ['','','','',''],  // max 5, staff uses only first 3
+    selected: null,
+    qTimer: null,
+    qSec: Q_TIME,
+    startTime: Date.now(),
+    showingSection: false,
+  };
+
+  document.getElementById('qn-tot').textContent = allQs.length;
+  btnMode = 'mcq';
+  showPage('pg-quiz');
+  renderQ();
+}
+
+function renderQ() {
+  var s = testState;
+  if (s.qIdx >= s.questions.length) { endTest(); return; }
+  var q = s.questions[s.qIdx];
+
+  // Section divider before essays
+  if (s.qIdx === 20 && !s.showingSection) { s.showingSection=true; showSectionDivider(); return; }
+
+  var progress = (s.qIdx / s.questions.length) * 100;
+  document.getElementById('quiz-progress').style.width = progress + '%';
+  document.getElementById('qn-cur').textContent = s.qIdx + 1;
+
+  var optionsWrap = document.getElementById('options-wrap');
+  var badge       = document.getElementById('q-badge');
+  var timerWrap   = document.getElementById('timer-wrap');
+  var btnConfirm  = document.getElementById('btn-confirm');
+  var timerVal    = document.getElementById('total-timer-val');
+  s.selected = null;
+
+  if (!q || !q.type) {
+    document.getElementById('q-text').textContent = '題目載入錯誤，請重新整理頁面';
+    return;
+  }
+
+  if (q.type === 'mcq') {
+    var levelMap = {
+      basic: ['基本題', 'badge-basic'],
+      mid:   ['中等難度', 'badge-mid'],
+      hard:  ['高難度', 'badge-hard']
+    };
+    var levelInfo = levelMap[q.level] || ['選擇題', 'badge-basic'];
+    badge.textContent = levelInfo[0];
+    badge.className = 'q-cat-badge ' + levelInfo[1];
+    timerWrap.style.display = 'flex';
+    timerVal.textContent = '–';
+    document.getElementById('q-text').textContent = q.q;
+
+    var letters = ['A','B','C','D'];
+    var optsHtml = '';
+    for (var oi = 0; oi < q.opts.length; oi++) {
+      optsHtml += '<button class="opt-btn" onclick="selectOpt(' + oi + ')">'
+        + '<span class="opt-ltr">' + letters[oi] + '</span>'
+        + '<span>' + q.opts[oi] + '</span></button>';
+    }
+    optionsWrap.innerHTML = optsHtml;
+
+    btnMode = 'mcq';
+    btnConfirm.disabled = true;
+    btnConfirm.textContent = '確認作答';
+
+    clearInterval(s.qTimer);
+    s.qSec = Q_TIME;
+    updateTimerArc(Q_TIME, Q_TIME);
+    s.qTimer = setInterval(function() {
+      s.qSec--;
+      updateTimerArc(s.qSec, Q_TIME);
+      if (s.qSec <= 0) { clearInterval(s.qTimer); nextQ(); }
+    }, 1000);
+  
+  } else {
+    badge.textContent = '問答題';
+    badge.className = 'q-cat-badge badge-essay';
+    timerWrap.style.display = 'none';
+    timerVal.textContent = '';
+    clearInterval(s.qTimer);
+
+    var ei = s.qIdx - 20;
+    var savedText = s.essayAnswers[ei] || '';
+    document.getElementById('q-text').textContent = q.q;
+
+    optionsWrap.innerHTML =
+      '<div class="essay-area">'
+      + '<textarea id="essay-input" placeholder="請在此輸入您的回答（最多 500 字）" maxlength="500"'
+      + ' oninput="updateCharCount(this)">' + savedText + '</textarea>'
+      + '<div class="char-count" id="char-count">' + savedText.length + ' / 500 字</div>'
+      + '</div>';
+
+    btnMode = 'essay';
+    btnConfirm.disabled = false;
+    btnConfirm.textContent = (s.qIdx === s.questions.length - 1) ? '提交測驗 ✓' : '下一題 →';
+    }
+}
+
+function showSectionDivider() {
+  clearInterval(testState.qTimer);
+  document.getElementById('timer-wrap').style.display = 'none';
+  document.getElementById('q-badge').textContent = '問答題說明';
+  document.getElementById('q-badge').className = 'q-cat-badge badge-essay';
+  document.getElementById('q-text').textContent = '選擇題作答完畢！';
+  var essayCount = selectedRole === 'manager' ? 5 : 3;
+  document.getElementById('options-wrap').innerHTML =
+    '<div class="section-divider">'
+    + '<h3>✍️ 接下來是問答題（共 ' + essayCount + ' 道）</h3>'
+    + '<p>不限作答時間，每題上限 <strong>500 字以內</strong>。<br>'
+    + '請根據您的實際工作經驗詳細作答。</p>'
+    + '</div>';
+  var btn = document.getElementById('btn-confirm');
+  btn.disabled = false;
+  btn.textContent = '開始作答 →';
+  btnMode = 'section';
+}
+
+function updateCharCount(el) {
+  var count = el.value.length;
+  var cc = document.getElementById('char-count');
+  cc.textContent = count + ' / 500 字';
+  cc.className = 'char-count' + (count>=480?' over':'');
+  testState.essayAnswers[testState.qIdx - 20] = el.value;
+}
+
+function updateTimerArc(sec, total) {
+  var circ   = 113.1;
+  var offset = circ * (1 - sec/total);
+  var arc    = document.getElementById('timer-arc');
+  var num    = document.getElementById('timer-num');
+  if (!arc) return;
+  arc.style.strokeDashoffset = offset;
+  arc.style.stroke = sec<=5 ? '#8b2020' : '#e8671a';
+  num.textContent = sec;
+  num.style.color = sec<=5 ? '#8b2020' : 'var(--ink)';
+}
+
+function selectOpt(i) {
+  testState.selected = i;
+  var optBtns = document.querySelectorAll('.opt-btn');
+  for (var bi=0; bi<optBtns.length; bi++) {
+    if (bi===i) optBtns[bi].classList.add('selected');
+    else optBtns[bi].classList.remove('selected');
+  }
+  document.getElementById('btn-confirm').disabled = false;
+}
+
+// Global button mode: 'mcq' | 'section' | 'essay'
+var btnMode = 'mcq';
+
+
+// ── DEBUG ──────────────────────────────────────────
+// ───────────────────────────────────────────────────
+
+function handleConfirm() {
+  if (btnMode === 'section') {
+    // 標記 section 已顯示過，qIdx 維持 20
+    // renderQ 判斷 showingSection=true 時不再觸發 divider，直接渲染 essay[0]
+    testState.showingSection = true;   // 維持 true，讓 renderQ 不再觸發 divider
+    btnMode = 'essay';
+    renderQ();
+  } else if (btnMode === 'mcq') {
+    // Save MCQ answer and go next
+    clearInterval(testState.qTimer);
+    testState.answers[testState.qIdx] = testState.selected;
+    nextQ();
+  } else if (btnMode === 'essay') {
+    // Save essay answer and go next
+    var ta = document.getElementById('essay-input');
+    var ei = testState.qIdx - 20;
+    testState.essayAnswers[ei] = ta ? ta.value.trim() : '';
+    nextQ();
+  }
+}
+
+function confirmAnswer() {
+  handleConfirm();
+}
+
+function nextQ() { testState.qIdx++; renderQ(); }
+
+function endTest() {
+  clearInterval(testState.qTimer);
+  var elapsed = Math.floor((Date.now()-testState.startTime)/1000);
+  var elapsedStr = Math.floor(elapsed/60)+'分'+String(elapsed%60).padStart(2,'0')+'秒';
+
+  // Score MCQ
+  var correct=0, basicCorrect=0, midCorrect=0, hardCorrect=0;
+  var mcqs = testState.questions.slice(0,20);
+  for (var si=0; si<mcqs.length; si++) {
+    var sq = mcqs[si];
+    var userAns = testState.answers[si];
+    if (userAns !== null && userAns !== undefined && Number(userAns) === Number(sq.ans)) {
+      correct++;
+      var lv = String(sq.level || '');
+      if (lv === 'basic') basicCorrect++;
+      else if (lv === 'mid') midCorrect++;
+      else if (lv === 'hard') hardCorrect++;
+    }
+  }
+
+  var result = {
+    name:       userInfo.name,
+    phone:      userInfo.phone,
+    job:        userInfo.job,
+    date:       userInfo.date,
+    role:       selectedRole==='manager'?'主管職':'非主管職',
+    elapsed:    elapsedStr,
+    testDate:   new Date().toLocaleString('zh-TW'),
+    mcqCorrect: correct,
+    basicCorrect: basicCorrect,
+    midCorrect:   midCorrect,
+    hardCorrect:  hardCorrect,
+    answerRate: Math.round(correct/20*100)+'%',
+    essayAnswers: testState.essayAnswers,
+    essayQuestions: (function(){
+      var qs=[];
+      var src=ESSAY[selectedRole];
+      for(var qi=0;qi<src.length;qi++) qs.push(src[qi].q);
+      return qs;
+    })(),
+  };
+
+  var doneItems = [
+    ['姓名',result.name],['應徵職務',result.job],
+    ['作答時間',elapsedStr],['測驗日期',result.testDate]
+  ];
+  var doneHtml = '';
+  for (var di=0; di<doneItems.length; di++) {
+    doneHtml += '<div class="done-info-item"><div class="lbl">'+doneItems[di][0]+'</div><div class="val">'+doneItems[di][1]+'</div></div>';
+  }
+  document.getElementById('done-info-grid').innerHTML = doneHtml;
+  showPage('pg-done');
+  pushToGSheet(result);
+}
+
+function pushToGSheet(r) {
+  var payload = {
+    action:'saveAIRecord',
+    name:r.name, phone:r.phone, job:r.job, date:r.date, role:r.role,
+    elapsed:r.elapsed, testDate:r.testDate,
+    mcqCorrect:r.mcqCorrect, basicCorrect:r.basicCorrect,
+    midCorrect:r.midCorrect, hardCorrect:r.hardCorrect,
+    answerRate:r.answerRate,
+    essayQ1:r.essayQuestions[0]||'', essayA1:r.essayAnswers[0]||'',
+    essayQ2:r.essayQuestions[1]||'', essayA2:r.essayAnswers[1]||'',
+    essayQ3:r.essayQuestions[2]||'', essayA3:r.essayAnswers[2]||'',
+    essayQ4:r.essayQuestions[3]||'', essayA4:r.essayAnswers[3]||'',
+    essayQ5:r.essayQuestions[4]||'', essayA5:r.essayAnswers[4]||'',
+  };
+  DX.submit('ai', payload);
+}
+</script>
+</body>
+</html>
