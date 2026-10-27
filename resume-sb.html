@@ -153,6 +153,7 @@ function collect() {
   return d;
 }
 function fill(d) {
+  RS.ensureCards(form, d);                          // 草稿裡有第 2、3… 組的資料時，先把對應的組別長出來
   Object.keys(d).forEach(function (k) {
     form.querySelectorAll('[name="' + k + '"]').forEach(function (el) {
       if (el.type === 'radio') el.checked = (el.value === d[k]);
@@ -164,11 +165,11 @@ function fill(d) {
 }
 function showPhoto(src) { $('#photoBox').innerHTML = src ? '<img src="' + src + '" alt="照片">' : '2 吋照片<br>（上傳電子檔）'; }
 function num(n) { var v = parseFloat((form.elements[n] || {}).value); return isNaN(v) ? 0 : v; }
-function recalc() {
-  [0, 1, 2, 3].forEach(function (i) {
-    var k = 'job.' + i + '.';
+function recalc() {                                   // 每一組工作經歷各自合計（組數不限）
+  Array.prototype.forEach.call(form.querySelectorAll('input[name^="job."][name$=".total"]'), function (el) {
+    var k = el.name.replace(/total$/, '');
     var t = num(k + 'fixed') + num(k + 'allow') + num(k + 'other');
-    form.elements[k + 'total'].value = t ? t : '';
+    el.value = t ? t : '';
     var m = num(k + 'fixed_m') + num(k + 'perf_m') + num(k + 'bonus_m');
     form.elements[k + 'total_m'].value = m ? Math.round(m * 100) / 100 : '';
   });
@@ -214,11 +215,12 @@ function validate() {
   if (d['basic.email'] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d['basic.email'])) errs.push({ n: 'basic.email', l: 'E-mail 格式不正確' });
   if (d['basic.mobile'] && !/^[0-9+\-\s()]{8,}$/.test(d['basic.mobile'])) errs.push({ n: 'basic.mobile', l: '行動電話格式不正確' });
   // 任用諮詢：至少完整填寫一位；填了一半的也要補完整
-  var refF = ['name', 'company', 'title', 'tel', 'rel'], refDone = 0;
-  [0, 1].forEach(function (i) {
+  var refF = ['name', 'company', 'title', 'tel', 'rel'], refDone = 0, refIdx = { 0: 1 };
+  Object.keys(d).forEach(function (k) { var m = /^ref\.(\d+)\./.exec(k); if (m) refIdx[m[1]] = 1; });     // 有填的每一組諮詢人都要檢查
+  Object.keys(refIdx).map(Number).sort(function (x, y) { return x - y; }).forEach(function (i) {
     var got = refF.filter(function (k) { return d['ref.' + i + '.' + k]; }).length;
     if (got === refF.length) refDone++;
-    else if (got > 0) refF.forEach(function (k) { if (!d['ref.' + i + '.' + k]) errs.push({ n: 'ref.' + i + '.' + k, l: '諮詢人' + (i + 1) + ' 資料請填寫完整（缺：' + RS.keyToLabel['ref.' + i + '.' + k].replace(/^諮詢人\d /, '') + '）' }); });
+    else if (got > 0) refF.forEach(function (k) { if (!d['ref.' + i + '.' + k]) errs.push({ n: 'ref.' + i + '.' + k, l: '諮詢人' + (i + 1) + ' 資料請填寫完整（缺：' + RS.labelOf('ref.' + i + '.' + k).replace(/^諮詢人\d+ /, '') + '）' }); });
   });
   if (!refDone && !errs.some(function (e) { return /^ref\./.test(e.n); })) refF.forEach(function (k, j) { errs.push({ n: 'ref.0.' + k, l: '任用諮詢請至少完整填寫一位（姓名、公司、職稱、聯絡電話、關係皆須填寫）', quiet: j > 0 }); });
   if (!['grad', 'univ', 'college', 'high'].some(function (k) { return d['edu.' + k + '.school']; })) errs.push({ n: 'edu.high.school', l: '請至少填寫一筆教育程度' });
@@ -328,10 +330,16 @@ var CONSENT = RS.consentHTML();       // 個資告知事項全文（定義在 re
     setStt('已還原草稿', true);
   }
   if (!form.elements['job.date'].value) form.elements['job.date'].value = today();
+  try {                                              // 面試邀約信件的連結：?name= 一定帶入中文姓名、?job= 帶入應徵職務（連結優先於舊草稿）
+    var qp = new URLSearchParams(location.search), qn = (qp.get('name') || '').trim().slice(0, 100), qj = (qp.get('job') || '').trim().slice(0, 200);
+    if (qn) form.elements['basic.name_zh'].value = qn;
+    if (qj) form.elements['job.title'].value = qj;                 // 應徵職務
+    if (qn || qj) progress();
+  } catch (e) {}
   if (DEMO) $('#notice').innerHTML += '<div class="banner info"><b>【示範模式】</b>尚未設定 Apps Script 網址，送出時不會寫入試算表，只會存在本機示範資料（可在示範後台看到）。</div>';
 
   form.addEventListener('input', function (e) {
-    if (e.target.name && /^job\.\d\.(fixed|allow|other|fixed_m|perf_m|bonus_m)$/.test(e.target.name)) recalc();
+    if (e.target.name && /^job\.\d+\.(fixed|allow|other|fixed_m|perf_m|bonus_m)$/.test(e.target.name)) recalc();
     if (form.elements['addr.same'].checked && /^addr\.(same|reg|reg_tel)$/.test(e.target.name)) syncAddr();
     markDirty();
   });

@@ -210,6 +210,26 @@ html,body{height:100%}
 #tab-pdf .st-ok{display:inline-block;font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px;background:#eafaf1;color:#1e8449}
 #tab-pdf .st-no{display:inline-block;font-size:12px;padding:3px 10px;border-radius:20px;background:#f2f0eb;color:#9a958f}
 #tab-pdf .st-score{font-weight:600;color:#1a1814}
+#tab-mail .page-title{font-size:22px;font-weight:600;margin-bottom:20px;color:#1a1814}
+#tab-mail .mail-card{background:#fff;border:1px solid #e8e5de;border-radius:14px;padding:20px 24px;margin-bottom:20px}
+#tab-mail .mail-card h3{font-size:15px;font-weight:600;margin-bottom:14px;color:#1a1814}
+#tab-mail .mail-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#tab-mail .form-group{margin-bottom:14px}
+#tab-mail label{font-size:13px;font-weight:500;color:#3d3a34;display:block;margin-bottom:5px}
+#tab-mail .rq{color:#8b2020}
+#tab-mail input[type=text],#tab-mail input[type=date],#tab-mail textarea{width:100%;font-family:inherit;font-size:14px;padding:9px 12px;border:1px solid #e8e5de;border-radius:10px;background:#faf9f6;color:#1a1814;outline:none}
+#tab-mail input:focus,#tab-mail textarea:focus{border-color:#e8671a;box-shadow:0 0 0 3px rgba(232,103,26,.12)}
+#tab-mail textarea{line-height:1.7;resize:vertical;min-height:360px}
+#tab-mail .mail-items{display:flex;flex-wrap:wrap;gap:10px}
+#tab-mail .mail-items label{display:flex;align-items:center;gap:8px;margin:0;padding:9px 14px;border:1px solid #e8e5de;border-radius:10px;background:#faf9f6;cursor:pointer;font-weight:400;font-size:13px}
+#tab-mail .mail-items label.on{border-color:#e8671a;background:#fef3ec;color:#c9540f;font-weight:500}
+#tab-mail .mail-items input{width:auto}
+#tab-mail .mail-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#tab-mail .btn-secondary{background:#fff;color:#1a1814;border:1px solid #e8e5de;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:400;cursor:pointer}
+#tab-mail .btn-secondary:hover{background:#f8f6f1;border-color:#b0acaa}
+#tab-mail .btn-primary{background:#e8671a;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer}
+#tab-mail .btn-primary:hover{background:#c9540f}
+#tab-mail .mail-hint{font-size:12px;color:#7a7570;margin-top:10px;line-height:1.7}
 .frame-box.dx-export{display:block;position:fixed;left:-20000px;top:0;width:1100px;height:900px}
 .frame-box iframe{border:0;width:100%;height:100%;background:var(--paper)}
 .frame-box .fail{margin:60px auto;text-align:center;color:var(--ink3);max-width:420px;line-height:1.8}
@@ -265,6 +285,35 @@ html,body{height:100%}
             <table><thead><tr><th>姓名</th><th>個人資料</th><th>人格特質</th><th>邏輯能力</th><th>英文能力</th><th>AI能力</th><th id="pdf-th-date" onclick="sortPdf()" style="cursor:pointer;user-select:none">面試日期 ⇅</th><th>下載整合PDF</th></tr></thead><tbody id="pdf-body"></tbody></table>
           </div>
           <div id="pdf-empty" style="display:none;text-align:center;color:var(--ink3);padding:40px">尚無符合的求職者</div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-mail" style="display:none;overflow-y:auto;flex:1;max-width:none">
+      <div style="max-width:900px">
+        <div class="page-title">產出面試信件</div>
+        <div class="mail-card">
+          <h3>面試資料</h3>
+          <div class="mail-row">
+            <div class="form-group"><label>姓名 <span class="rq">*</span></label><input type="text" id="mail-name" placeholder="求職者姓名" oninput="mailChanged()" autocomplete="off"></div>
+            <div class="form-group"><label>應徵職務（選填）</label><input type="text" id="mail-job" placeholder="例：行銷專員" oninput="mailChanged()" autocomplete="off"></div>
+          </div>
+          <div class="mail-row">
+            <div class="form-group"><label>面試日期（選填）</label><input type="date" id="mail-date" oninput="mailChanged()"></div>
+            <div class="form-group"><label>面試時間（選填）</label><input type="text" id="mail-time" placeholder="例：下午 2:00" oninput="mailChanged()" autocomplete="off"></div>
+          </div>
+          <div class="form-group"><label>面試地點（選填）</label><input type="text" id="mail-place" placeholder="例：台北市○○區○○路○號 5 樓" oninput="mailChanged()" autocomplete="off"></div>
+          <div class="form-group" style="margin-bottom:0"><label>請求職者填寫或測驗的項目</label><div class="mail-items" id="mail-items"></div></div>
+        </div>
+        <div class="mail-card">
+          <h3>面試邀約信件</h3>
+          <div class="form-group"><label>主旨</label><input type="text" id="mail-subject" autocomplete="off"></div>
+          <div class="form-group"><label>內文（可以直接修改）</label><textarea id="mail-body" oninput="mailEdited()"></textarea></div>
+          <div class="mail-actions">
+            <button class="btn-primary" onclick="copyMail('mail-body', this)">📋 複製內文</button>
+            <button class="btn-secondary" onclick="copyMail('mail-subject', this)">複製主旨</button>
+            <button class="btn-secondary" onclick="mailRegen()">🔄 重新產生</button>
+          </div>
+          <div class="mail-hint" id="mail-hint"></div>
         </div>
       </div>
     </div>
@@ -842,6 +891,7 @@ function enter(admin) {
   $('nav').innerHTML = '<div class="nav-sep">招募與評測</div>' +
     MODULES.map(function (m) { return '<div class="nav-item" data-id="' + m.id + '" onclick="openModule(\'' + m.id + '\')"><span class="ni">' + m.icon + '</span><span class="t">' + m.name + '</span></div>'; }).join('') +
     '<div class="nav-item" data-id="pdf" onclick="openModule(\'pdf\')"><span class="ni">📑</span><span class="t">下載整合PDF</span></div>' +
+    '<div class="nav-item" data-id="mail" onclick="openModule(\'mail\')"><span class="ni">✉️</span><span class="t">產出面試信件</span></div>' +
     '<div class="nav-sep">系統</div><div class="nav-item" data-id="admins" onclick="openModule(\'admins\')"><span class="ni">👥</span><span class="t">管理員設定</span></div>' +
     (admin.role === 'super' ? '<div class="nav-item" data-id="audit" onclick="openModule(\'audit\')"><span class="ni">🧾</span><span class="t">操作紀錄</span></div>' : '');
   showScreen('s-admin');
@@ -853,10 +903,11 @@ function openModule(id) {
   activeId = id;
   document.querySelectorAll('#nav .nav-item').forEach(function (n) { n.classList.toggle('active', n.getAttribute('data-id') === id); });
   document.querySelectorAll('.frame-box').forEach(function (b) { b.classList.remove('active'); });
-  $('tab-admins').style.display = 'none'; $('tab-audit').style.display = 'none'; $('tab-pdf').style.display = 'none';
+  $('tab-admins').style.display = 'none'; $('tab-audit').style.display = 'none'; $('tab-pdf').style.display = 'none'; $('tab-mail').style.display = 'none';
   if (id === 'admins') { $('tab-admins').style.display = 'block'; loadAdmins(); return; }
   if (id === 'audit') { $('tab-audit').style.display = 'block'; loadAudit(); return; }
   if (id === 'pdf') { $('tab-pdf').style.display = 'block'; loadPdfList(); return; }
+  if (id === 'mail') { $('tab-mail').style.display = 'block'; initMail(); return; }
   ensureFrame(id);
   frames[id].box.classList.add('active');
 }
@@ -1055,6 +1106,81 @@ window.dxCombinedPdf = async function (name, phone, btn, opts) {
     setLoading(false); pdfBusy = false; if (btn) btn.disabled = false;
   }
 };
+
+/* ═══════════════ 產出面試信件 ═══════════════ */
+// 求職者實際使用的網址（GitHub Pages）。連結後面帶 ?name=姓名（一定帶入）與 &date=面試日期（測驗頁才有，有填才帶）
+var MAIL_BASE = 'https://dawningtechhr.github.io/recruit/';
+var MAIL_ITEMS = [
+  { id: 'resume', label: '個人資料表', file: 'resume-sb.html', date: false, note: '請如實填寫，送出後無法自行修改。' },
+  { id: 'personality', label: '人格特質分析', file: 'personality-assessment-sb.html', date: true, note: '共 90 題，總時限 35 分鐘。' },
+  { id: 'logic', label: '邏輯能力測驗', file: 'logic-assessment-sb.html', date: true, note: '共 30 題，總時限 20 分鐘。' },
+  { id: 'english', label: '英文能力測驗', file: 'english-assessment-sb.html', date: true, note: '共 25 題，總時限 30 分鐘。' },
+  { id: 'ai', label: 'AI 能力測驗', file: 'ai-assessment-sb.html', date: true, note: '選擇題 20 題（每題 30 秒）、問答題 3～5 題（不限時）。' }
+];
+var mailInited = false, mailTouched = false;
+function initMail() {
+  if (mailInited) return;
+  mailInited = true;
+  $('mail-items').innerHTML = MAIL_ITEMS.map(function (it) {
+    return '<label class="on"><input type="checkbox" value="' + it.id + '" checked onchange="this.parentNode.classList.toggle(\'on\', this.checked); mailChanged()">' + esc(it.label) + '</label>';
+  }).join('');
+  mailRegen();
+}
+function mailLink(it, name, date, job) {
+  var u = MAIL_BASE + it.file + '?name=' + encodeURIComponent(name);
+  if (job) u += '&job=' + encodeURIComponent(job);                        // 有填應徵職務就帶入（個人資料表與四個測驗都有這個欄位）
+  if (it.date && date) u += '&date=' + encodeURIComponent(date);
+  return u;
+}
+function mailDateText(iso) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); if (!m) return '';
+  var d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return m[1] + '年' + (+m[2]) + '月' + (+m[3]) + '日（星期' + '日一二三四五六'.charAt(d.getDay()) + '）';
+}
+function buildMail() {
+  var one = function (id) { return $(id).value.replace(/\s+/g, ' ').trim(); };
+  var name = one('mail-name'), date = $('mail-date').value, job = one('mail-job'), time = one('mail-time'), place = one('mail-place');
+  var picked = MAIL_ITEMS.filter(function (it) { var c = document.querySelector('#mail-items input[value="' + it.id + '"]'); return c && c.checked; });
+  if (!name) return { subject: '', body: '', hint: '請先填寫姓名。' };
+  if (!picked.length) return { subject: '', body: '', hint: '請至少勾選一個項目。' };
+  var dateText = mailDateText(date), carriesDate = !!dateText && picked.some(function (it) { return it.date; });
+  var L = [];
+  L.push(name + ' 您好：', '');
+  L.push('感謝您應徵敦新科技股份有限公司' + (job ? '的「' + job + '」職務' : '') + '，我們誠摯邀請您前來面試。', '');
+  var info = [];
+  if (job) info.push('應徵職務：' + job);
+  if (dateText) info.push('面試日期：' + dateText);
+  if (time) info.push('面試時間：' + time);
+  if (place) info.push('面試地點：' + place);
+  if (info.length) L.push.apply(L, info.concat(['']));
+  var carried = ['姓名'].concat(job ? ['應徵職務'] : []).concat(carriesDate ? ['面試日期'] : []);
+  var carriedText = carried.length > 1 ? carried.slice(0, -1).join('、') + '與' + carried[carried.length - 1] : carried[0];
+  L.push('為了讓面試順利進行，請您於面試前完成下列項目。點選連結即可開始填寫，頁面會自動帶入您的' + carriedText + '，請先確認是否正確：', '');
+  picked.forEach(function (it, i) {
+    L.push((i + 1) + '. ' + it.label, mailLink(it, name, date, job), '   ' + it.note, '');
+  });
+  L.push('注意事項：');
+  L.push('．測驗開始後無法暫停，請在安靜、不受打擾的環境下獨立完成。');
+  L.push('．請使用電腦或手機的瀏覽器開啟連結；若連結無法開啟，請與我們聯繫。', '');
+  L.push('期待與您見面，如有任何問題歡迎隨時來信或來電。', '');
+  L.push('敬祝 順心', '敦新科技股份有限公司 人力資源部 敬上');
+  return { subject: '【敦新科技】面試邀約通知－' + name, body: L.join('\n'), hint: '' };
+}
+function mailRegen() {
+  mailTouched = false;
+  var r = buildMail();
+  $('mail-subject').value = r.subject; $('mail-body').value = r.body;
+  $('mail-hint').textContent = r.hint || '連結已帶入姓名' + ($('mail-job').value.trim() ? '、應徵職務' : '') + ($('mail-date').value ? '與面試日期（個人資料表不含面試日期欄位）' : '') + '。內文可以直接修改（修改後再改上方資料不會覆蓋，要重新套用請按「重新產生」）。複製後貼到您的信箱寄出即可，本頁不會自動寄信。';
+}
+function mailChanged() { if (!mailTouched) mailRegen(); }
+function mailEdited() { mailTouched = true; }
+function copyMail(id, btn) {
+  var el = $(id), text = el.value;
+  if (!text) { showToast('請先填寫姓名並勾選項目', 'error'); return; }
+  var done = function () { showToast(id === 'mail-body' ? '已複製內文' : '已複製主旨', 'success'); };
+  var fallback = function () { el.focus(); el.select(); try { document.execCommand('copy') ? done() : showToast('複製失敗，請手動選取複製', 'error'); } catch (e) { showToast('複製失敗，請手動選取複製', 'error'); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+}
 
 /* ═══════════════ 管理員設定（Supabase）═══════════════ */
 function pwProblem(pw, username) {

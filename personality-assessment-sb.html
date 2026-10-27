@@ -541,5 +541,19 @@ function showToast(msg,type=''){
   setTimeout(()=>{t.className='toast'},3000);
 }
 </script>
+<script>
+/* 面試邀約信件的連結會帶入姓名（?name=）、面試日期（&date=YYYY-MM-DD）與應徵職務（&job=）：進入頁面時自動填進對應欄位。
+   姓名一定會帶入（即使瀏覽器有自動填入的舊資料也以連結為準）；沒有的參數就不動該欄位。 */
+(function () {
+  try {
+    var q = new URLSearchParams(location.search), name = (q.get('name') || '').trim().slice(0, 100), date = (q.get('date') || '').trim(), job = (q.get('job') || '').trim().slice(0, 200);
+    var nameEl = document.getElementById('inp-name'), dateEl = document.getElementById('inp-date'), jobEl = document.getElementById('inp-job');
+    if (name && nameEl) nameEl.value = name;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && dateEl) dateEl.value = date;
+    if (job && jobEl) jobEl.value = job;
+    [nameEl, dateEl, jobEl].forEach(function (el) { if (el && el.value) el.dispatchEvent(new Event('input', { bubbles: true })); });
+  } catch (e) { /* 沒有參數或瀏覽器不支援時，維持空白讓受測者自己填 */ }
+})();
+</script>
 </body>
 </html>
