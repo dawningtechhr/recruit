@@ -50,14 +50,14 @@
       ], []) }
     ] },
     { id: 'lang', n: 3, title: '語文能力', hint: '請以數字表示：1 優秀、2 很好、3 好、4 尚可、5 差。', blocks: [
-      { t: 'cards', key: 'lang', tbl: 1, view: 'card', ids: [0, 1, 2], names: ['英文', '其他語文1', '其他語文2'], fields: [
-        F('name', '語文名稱', 'text', { only: [1, 2] }),
+      { t: 'cards', key: 'lang', tbl: 1, view: 'card', dyn: 1, init: 2, add: '其他語文', nameFn: function (i) { return '其他語文' + i; }, ids: [0, 1, 2], names: ['英文', '其他語文1', '其他語文2'], fields: [
+        F('name', '語文名稱', 'text', { only: [1, 2], from: 1 }),
         F('listen', '聽', 'select', { opts: SC, reqOnly: [0] }), F('speak', '說', 'select', { opts: SC, reqOnly: [0] }),
         F('read', '讀', 'select', { opts: SC, reqOnly: [0] }), F('write', '寫', 'select', { opts: SC, reqOnly: [0] })
       ] }
     ] },
-    { id: 'fam', n: 4, title: '家庭狀況', hint: '請填寫主要家庭成員。', blocks: [
-      { t: 'cards', key: 'fam', view: 'table', ids: [0, 1, 2, 3, 4, 5], names: ['家庭成員1', '家庭成員2', '家庭成員3', '家庭成員4', '家庭成員5', '家庭成員6'], fields: [
+    { id: 'fam', n: 4, title: '家庭狀況', hint: '請填寫主要家庭成員，需要更多請按「＋」新增。', blocks: [
+      { t: 'cards', key: 'fam', view: 'table', dyn: 1, init: 1, prefix: '家庭成員', add: '家庭成員', ids: [0, 1, 2, 3, 4, 5], names: ['家庭成員1', '家庭成員2', '家庭成員3', '家庭成員4', '家庭成員5', '家庭成員6'], fields: [
         F('rel', '稱謂'), F('name', '姓名'), F('age', '年齡', 'number'), F('job', '職業')
       ] }
     ] },
@@ -69,23 +69,23 @@
       ] }
     ] },
     { id: 'pc', n: 6, title: '電腦技能', hint: '較專精之電腦軟硬體、應用系統及程式語言，請填寫瞭解程度與實作經驗。', blocks: [
-      { t: 'cards', key: 'pc', view: 'table', ids: [0, 1, 2, 3, 4], names: ['電腦技能1', '電腦技能2', '電腦技能3', '電腦技能4', '電腦技能5'], fields: [
+      { t: 'cards', key: 'pc', view: 'table', dyn: 1, init: 1, prefix: '電腦技能', add: '電腦技能', ids: [0, 1, 2, 3, 4], names: ['電腦技能1', '電腦技能2', '電腦技能3', '電腦技能4', '電腦技能5'], fields: [
         F('item', '軟硬體／系統／程式語言'), F('level', '瞭解程度', 'select', { opts: ['非常熟悉', '熟悉', '只讀過'] }), F('exp', '實作經驗', 'select', { opts: ['有', '沒有'] })
       ] }
     ] },
     { id: 'cert', n: 7, title: '專業資格考試或認證', hint: '請填寫通過之專業證照、政府／民間考試名稱。', blocks: [
-      { t: 'cards', key: 'cert', view: 'table', ids: [0, 1, 2, 3, 4], names: ['證照1', '證照2', '證照3', '證照4', '證照5'], fields: [
+      { t: 'cards', key: 'cert', view: 'table', dyn: 1, init: 1, prefix: '證照', add: '證照', ids: [0, 1, 2, 3, 4], names: ['證照1', '證照2', '證照3', '證照4', '證照5'], fields: [
         F('name', '證照／考試名稱'), F('org', '認證單位'), F('ym', '認證年月', 'month'), F('has', '證書', 'select', { opts: ['有', '無'] })
       ] }
     ] },
-    { id: 'ref', n: 8, title: '任用諮詢', hint: '請提供二位可供諮詢之人士並取得其同意，其中一名必須為過去工作中之直屬主管。至少需完整填寫一位（五個欄位皆須填寫）。', blocks: [
-      { t: 'cards', key: 'ref', tbl: 1, view: 'card', ids: [0, 1], names: ['諮詢人1', '諮詢人2'], fields: [
+    { id: 'ref', n: 8, title: '任用諮詢', hint: '請提供二位可供諮詢之人士並取得其同意，其中一名必須為過去工作中之直屬主管。至少需完整填寫一位（五個欄位皆須填寫），需要更多請按「＋」新增。', blocks: [
+      { t: 'cards', key: 'ref', tbl: 1, view: 'card', dyn: 1, init: 1, prefix: '諮詢人', add: '諮詢人', ids: [0, 1], names: ['諮詢人1', '諮詢人2'], fields: [
         F('name', '姓名'), F('company', '公司'), F('title', '職稱'), F('tel', '聯絡電話', 'tel'), F('rel', '關係')
       ] }
     ] },
-    { id: 'job_hist', n: 9, title: '工作經歷', hint: '請從最近的工作開始填寫，最多四筆。薪資資料僅供人資核薪使用。', blocks: [
+    { id: 'job_hist', n: 9, title: '工作經歷', hint: '請從最近的工作開始填寫，需要更多筆請按「＋」新增。薪資資料僅供人資核薪使用。', blocks: [
       { t: 'fields', fields: [F('job.none', '無工作經歷（應屆畢業）', 'check', { wide: 1 })] },
-      { t: 'cards', key: 'job', view: 'card', ids: [0, 1, 2, 3], names: ['工作經歷1', '工作經歷2', '工作經歷3', '工作經歷4'], fields: [
+      { t: 'cards', key: 'job', view: 'card', dyn: 1, init: 1, prefix: '工作經歷', add: '工作經歷', ids: [0, 1, 2, 3], names: ['工作經歷1', '工作經歷2', '工作經歷3', '工作經歷4'], fields: [
         F('company', '公司名稱'), F('size', '人數規模'), F('dept', '部門'), F('title', '職稱'),
         F('from', '起（年月）', 'month'), F('to', '迄（年月）', 'month'),
         F('mgr', '擔任主管', 'select', { opts: ['否', '是'] }), F('mgr_n', '管理人數', 'number'),
@@ -99,7 +99,7 @@
     { id: 'exp', n: 10, title: '期望待遇與到職', blocks: [
       { t: 'fields', fields: [
         F('exp.monthly', '期望月全薪（元）', 'number', { req: 1 }), F('exp.annual', '期望年薪（元）', 'number', { req: 1 }), F('exp.months', '全年以幾個月計', 'number', { step: '0.1' }),
-        F('exp.start', '可到職日期', 'date', { req: 1 }), F('exp.days', '接獲錄取通知後第幾天開始任職', 'number', { req: 1 })
+        F('exp.start', '可到職日期', 'date'), F('exp.days', '接獲錄取通知後第幾天開始任職', 'number', { req: 1 })
       ] }
     ] },
     { id: 'credit', n: 11, title: '信用資料與關係人', hint: '請如實填寫；選「有」者請於後方說明。', blocks: [
@@ -125,6 +125,24 @@
   /* ── 攤平成欄位清單 ── */
   // 欄位若有 reqOnly（例如只有「英文」那張卡片必填），依卡片順序決定是否必填
   function cardField(f, i) { return f.reqOnly ? Object.assign({}, f, { req: f.reqOnly.indexOf(i) >= 0 ? 1 : 0 }) : f; }
+  var blocks = {};
+  sections.forEach(function (s) { s.blocks.forEach(function (b) { if (b.t === 'cards') blocks[b.key] = b; }); });
+  function blockName(b, i) { return (b.names && b.names[i]) || (b.nameFn ? b.nameFn(i) : (b.prefix || '') + (i + 1)); }
+  // 欄位是否出現在第 i 張卡片（only：指定的卡片；from：從第幾張開始）
+  function applies(f, i) { if (f.only == null && f.from == null) return true; return (f.only != null && f.only.indexOf(i) >= 0) || (f.from != null && i >= f.from); }
+  // 資料裡這個區塊用到的最大組別編號（沒有資料回傳 -1）
+  function maxIdx(b, d) {
+    var m = -1, re = new RegExp('^' + b.key + '\\.(\\d+)\\.');
+    Object.keys(d || {}).forEach(function (k) { var x = re.exec(k); if (x && d[k] !== '' && d[k] != null) m = Math.max(m, +x[1]); });
+    return m;
+  }
+  // 唯讀檢視要顯示哪些組：可重複填寫的區塊 = 預設組數與實際資料較多者
+  function idsFor(b, d) {
+    if (!b.dyn) return b.ids;
+    var n = Math.max(b.ids.length, maxIdx(b, d) + 1), a = [];
+    for (var i = 0; i < n; i++) a.push(i);
+    return a;
+  }
   var list = [], k2l = {}, l2k = {};
   function add(key, label, f) {
     var e = { key: key, label: label, type: f.type, f: f };
@@ -135,12 +153,20 @@
       if (b.t === 'fields') b.fields.forEach(function (f) { if (f.type !== 'photo') add(f.k, f.l, f); });
       if (b.t === 'cards') b.ids.forEach(function (id, i) {
         b.fields.forEach(function (f) {
-          if (f.only && f.only.indexOf(i) < 0) return;
+          if (!applies(f, i)) return;
           add(b.key + '.' + id + '.' + f.k, b.names[i] + ' ' + f.l, cardField(f, i));
         });
       });
     });
   });
+
+  function labelOf(key) {                 // 任何欄位 key 的中文名稱（包含超出預設組數的組別）
+    if (k2l[key]) return k2l[key];
+    var m = /^(\w+)\.(\d+)\.(\w+)$/.exec(key), b = m && blocks[m[1]];
+    if (!b) return key;
+    var f = b.fields.filter(function (x) { return x.k === m[3]; })[0];
+    return f ? blockName(b, +m[2]) + ' ' + f.l : key;
+  }
 
   function toRec(data) {
     var rec = {};
@@ -232,10 +258,10 @@
     }
     function langRows(b) {                // 語文能力：無標題列，每種語文一列，例如「英文 ｜ 聽 很好 ｜ 說 很好 ｜ 讀 很好 ｜ 寫 很好」
       var L = [['listen', '聽'], ['speak', '說'], ['read', '讀'], ['write', '寫']], rows = '';
-      b.ids.forEach(function (id, i) {
+      idsFor(b, d).forEach(function (id, i) {
         var g = function (k) { return d[b.key + '.' + id + '.' + k] || ''; };
         if (!g('name') && !L.some(function (x) { return g(x[0]) !== ''; })) return;
-        rows += '<tr><td style="' + TL + 'width:20%">' + esc(g('name') || b.names[i]) + '</td>' + L.map(function (x) {
+        rows += '<tr><td style="' + TL + 'width:20%">' + esc(g('name') || blockName(b, i)) + '</td>' + L.map(function (x) {
           var v = g(x[0]).replace(/^\d\s*/, '');
           return '<td style="' + CB + 'width:20%">' + (v ? esc(x[1] + ' ' + v) : '') + '</td>';
         }).join('') + '</tr>';
@@ -255,9 +281,9 @@
         else cols.push({ l: f.l, g: function (id) { return d[b.key + '.' + id + '.' + f.k] || ''; } });
       });
       var rows = [];
-      b.ids.forEach(function (id, i) {
+      idsFor(b, d).forEach(function (id, i) {
         var vals = cols.map(function (x) { return x.g(id); });
-        if (vals.some(function (x) { return x !== ''; })) rows.push([b.names[i]].concat(vals));
+        if (vals.some(function (x) { return x !== ''; })) rows.push([blockName(b, i)].concat(vals));
       });
       return rows.length ? gridTable([''].concat(cols.map(function (x) { return x.l; })), rows) : '<p style="' + EMPTY + '">（未填寫）</p>';
     }
@@ -297,7 +323,7 @@
         } else if (b.t === 'cards') {
           if (b.view === 'table') {
             var rows = [];
-            b.ids.forEach(function (id) {
+            idsFor(b, d).forEach(function (id) {
               var vals = b.fields.map(function (f) { return d[b.key + '.' + id + '.' + f.k] || ''; });
               if (vals.some(function (x) { return x !== ''; })) rows.push(vals);
             });
@@ -308,16 +334,16 @@
             body += cardsAsRows(b);
           } else {
             var any = false;
-            b.ids.forEach(function (id, i) {
+            idsFor(b, d).forEach(function (id, i) {
               var items2 = [];
               b.fields.forEach(function (f) {
-                if (f.only && f.only.indexOf(i) < 0) return;
+                if (!applies(f, i)) return;
                 var v = d[b.key + '.' + id + '.' + f.k] || '';
                 if (v !== '') items2.push({ l: f.l, v: v, wide: !!f.wide && !(c && f.k === 'reason') });
               });
               if (!items2.length) return;
               any = true;
-              body += '<p style="' + SUB + '">' + esc(b.names[i]) + '</p>' + pairsTable(items2);
+              body += '<p style="' + SUB + '">' + esc(blockName(b, i)) + '</p>' + pairsTable(items2);
             });
             if (!any) body += '<p style="' + EMPTY + '">（未填寫）</p>';
           }
@@ -353,6 +379,35 @@
     var lab = f.type === 'check' ? '' : '<label>' + (f.dl || label) + (f.req ? '<span class="rq">*</span>' : '') + '</label>';
     return '<div class="fg' + (f.wide ? ' wide' : '') + '" data-f="' + name + '">' + lab + ctl(name, f) + '</div>';
   }
+  function cardHTML(b, i) {
+    var id = b.dyn ? i : b.ids[i];
+    return '<div class="rowcard" data-card="' + b.key + '"><h4>' + esc(blockName(b, i)) + '</h4><div class="grid">' +
+      b.fields.filter(function (f) { return applies(f, i); })
+        .map(function (f) { return fieldHTML(b.key + '.' + id + '.' + f.k, cardField(f, i), f.l); }).join('') + '</div></div>';
+  }
+  function addRow(b) {
+    return '<div class="addrow" style="margin:0 0 14px"><button type="button" onclick="RS.addCard(this)" title="再新增一組" ' +
+      'style="padding:8px 18px;border:1px dashed var(--accent);background:transparent;color:var(--accent2);border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:500">＋ 新增' + esc(b.add || '一組') + '</button></div>';
+  }
+  // 按「＋」：在按鈕上方加一組新的欄位（組別編號 = 目前組數），新的一組出現後按鈕自然排在它下面
+  function addCard(btn) {
+    var wrap = btn.closest('[data-cards]'), b = wrap && blocks[wrap.getAttribute('data-cards')];
+    if (!b) return null;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = cardHTML(b, wrap.querySelectorAll('.rowcard').length);
+    var el = tmp.firstChild;
+    wrap.insertBefore(el, btn.parentNode);
+    return el;
+  }
+  // 還原草稿或載入資料時：依資料補足需要的組數
+  function ensureCards(root, d) {
+    Object.keys(blocks).forEach(function (key) {
+      var b = blocks[key], wrap = root.querySelector('[data-cards="' + key + '"]');
+      if (!b.dyn || !wrap) return;
+      var need = maxIdx(b, d) + 1, btn = wrap.querySelector('.addrow button');
+      while (btn && wrap.querySelectorAll('.rowcard').length < need) addCard(btn);
+    });
+  }
   function formHTML(opts) {
     opts = opts || {};
     var skip = opts.skip || [], h = '';
@@ -367,11 +422,14 @@
           if (b.sub) body += '<div class="sub-title">' + b.sub + '</div>';
           body += '<div class="grid">' + b.fields.map(function (f) { return fieldHTML(f.k, f, f.l); }).join('') + '</div>';
         } else if (b.t === 'cards') {
-          b.ids.forEach(function (id, i) {
-            body += '<div class="rowcard"><h4>' + b.names[i] + '</h4><div class="grid">' +
-              b.fields.filter(function (f) { return !f.only || f.only.indexOf(i) >= 0; })
-                .map(function (f) { return fieldHTML(b.key + '.' + id + '.' + f.k, cardField(f, i), f.l); }).join('') + '</div></div>';
-          });
+          if (b.dyn) {
+            var n = Math.max(b.init || 1, maxIdx(b, opts.data) + 1);       // 有現有資料時（後台編輯）顯示到最後一組有資料的組別
+            body += '<div data-cards="' + b.key + '">';
+            for (var i = 0; i < n; i++) body += cardHTML(b, i);
+            body += addRow(b) + '</div>';
+          } else {
+            b.ids.forEach(function (id, i) { body += cardHTML(b, i); });
+          }
         }
       });
       h += '<section class="form-card"><h3>' + s.n + '. ' + s.title + '</h3>' + (s.hint ? '<p class="hint">' + s.hint + '</p>' : '') + body + '</section>';
@@ -379,5 +437,5 @@
     return h;
   }
 
-  g.RS = { formHTML: formHTML, consent: consent, consentHTML: consentHTML, agree: AGREE, sections: sections, list: list, keyToLabel: k2l, labelToKey: l2k, toRec: toRec, fromRec: fromRec, viewHTML: viewHTML, esc: esc };
+  g.RS = { addCard: addCard, ensureCards: ensureCards, labelOf: labelOf, blockName: blockName, blocks: blocks, formHTML: formHTML, consent: consent, consentHTML: consentHTML, agree: AGREE, sections: sections, list: list, keyToLabel: k2l, labelToKey: l2k, toRec: toRec, fromRec: fromRec, viewHTML: viewHTML, esc: esc };
 })(window);
