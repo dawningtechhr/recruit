@@ -203,7 +203,7 @@ html,body{height:100%}
       <h2>管理員登入</h2>
       <div id="demo-note" style="display:none;background:var(--accent-light);border-left:3px solid var(--accent);padding:10px 12px;font-size:13px;margin-bottom:14px;line-height:1.7">【示範模式】尚未設定 Apps Script 網址，資料只存在本機瀏覽器。<br>示範帳號：admin ／ admin123</div>
       <div class="login-err" id="login-err"></div>
-      <div class="form-group"><label>Email</label><input type="email" id="login-acc" autocomplete="username"></div>
+      <div class="form-group"><label>帳號</label><input type="text" id="login-acc" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
       <div class="form-group"><label>密碼</label><input type="password" id="login-pw" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn-primary" style="width:100%" onclick="doLogin()">登入</button>
     </div>
@@ -252,10 +252,11 @@ html,body{height:100%}
     <div class="modal-body">
       <input type="hidden" id="adm-row">
       <div class="form-group"><label>姓名 *</label><input type="text" id="adm-name"></div>
-      <div class="form-group"><label>Email（登入帳號）*</label><input type="email" id="adm-acc" autocomplete="off"></div>
-      <div class="form-group"><label id="adm-pw-lbl">密碼 *</label><input type="password" id="adm-pw" autocomplete="new-password"><div style="font-size:12px;color:var(--ink3);margin-top:4px">至少 12 個字元，需同時包含英文字母與數字，且不可包含 Email 帳號</div></div>
+      <div class="form-group"><label>登入帳號 *</label><input type="text" id="adm-acc" autocomplete="off" autocapitalize="off" spellcheck="false"><div style="font-size:12px;color:var(--ink3);margin-top:4px">英文字母、數字與 . _ -，3～30 個字元（不分大小寫）</div></div>
+      <div class="form-group"><label id="adm-pw-lbl">密碼 *</label><input type="password" id="adm-pw" autocomplete="new-password"><div style="font-size:12px;color:var(--ink3);margin-top:4px">至少 8 個字元，需同時包含英文字母與數字，且不可包含登入帳號</div></div>
       <div class="form-group"><label>角色</label><select id="adm-role"><option value="admin">管理員</option><option value="super">超級管理員</option></select></div>
-      <div class="form-group"><label style="display:flex;gap:8px;align-items:center;font-weight:400;cursor:pointer"><input type="checkbox" id="adm-notify" style="width:auto"> 接收「有人送出資料」的通知信</label></div>
+      <div class="form-group"><label>通知信箱（選填）</label><input type="email" id="adm-email" autocomplete="off" placeholder="name@example.com"><div style="font-size:12px;color:var(--ink3);margin-top:4px">只用來收通知信，不是登入帳號</div></div>
+      <div class="form-group"><label style="display:flex;gap:8px;align-items:center;font-weight:400;cursor:pointer"><input type="checkbox" id="adm-notify" style="width:auto"> 接收「有人送出資料」的通知信（需填寫通知信箱）</label></div>
     </div>
     <div class="modal-foot"><button class="btn-secondary" onclick="closeModal('modal-admin')">取消</button><button class="btn-primary" onclick="saveAdmin()">儲存</button></div>
   </div>
@@ -692,17 +693,22 @@ async function adminFn(body) {                       // 呼叫 admin-users Edge 
 }
 function expired() { showToast('登入已逾時，請重新登入', 'error'); doLogout(); }
 
-/* ═══════════════ 登入（Supabase Auth：Email + 密碼）═══════════════ */
+/* ═══════════════ 登入（帳號 + 密碼）═══════════════ */
+// Supabase Auth 一定要有 Email，所以每個帳號在內部對應一個固定格式的 Email（不會寄信、也不會顯示）。
+// 要與 admin-users 函式裡的 authEmail() 相同。
+var AUTH_DOMAIN = 'dawningtech.com.tw';
+function authEmail(username) { return 'hr.' + String(username).trim().toLowerCase() + '@' + AUTH_DOMAIN; }
 async function loadProfile() {
   var s = await sb.auth.getSession(), sess = s.data && s.data.session;
   if (!sess) return null;
-  var p = await sb.from('profiles').select('id,name,role,email,notify').eq('id', sess.user.id).maybeSingle();
+  var p = await sb.from('profiles').select('id,name,role,email,username,notify').eq('id', sess.user.id).maybeSingle();
   if (p.error || !p.data) return null;
-  return { id: p.data.id, name: p.data.name, role: p.data.role, acc: p.data.email, email: p.data.email, notify: p.data.notify };
+  return { id: p.data.id, name: p.data.name, role: p.data.role, acc: p.data.username, username: p.data.username, email: p.data.email, notify: p.data.notify };
 }
 async function doLogin() {
-  var email = $('login-acc').value.trim(), pw = $('login-pw').value, err = $('login-err');
-  if (!email || !pw) { err.style.display = 'block'; err.textContent = '請填入 Email 與密碼'; return; }
+  var acc = $('login-acc').value.trim().toLowerCase(), pw = $('login-pw').value, err = $('login-err');
+  if (!acc || !pw) { err.style.display = 'block'; err.textContent = '請填入帳號與密碼'; return; }
+  var email = acc.indexOf('@') >= 0 ? acc : authEmail(acc);        // 帳號不會有 @；保留 Email 只是讓尚未轉換的舊帳號在過渡期還能登入
   setLoading(true, '驗證帳號中…');
   try {
     var r = await sb.auth.signInWithPassword({ email: email, password: pw });
@@ -713,7 +719,7 @@ async function doLogin() {
     enter(p);
   } catch (e) {
     err.style.display = 'block';
-    err.textContent = e.message === 'Invalid credentials' ? 'Email 或密碼錯誤' : e.message === 'NOT_STAFF' ? '此帳號不是管理員' : '登入失敗：' + e.message;
+    err.textContent = e.message === 'Invalid credentials' ? '帳號或密碼錯誤' : e.message === 'NOT_STAFF' ? '此帳號不是管理員' : '登入失敗：' + e.message;
   }
   setLoading(false);
 }
@@ -784,16 +790,16 @@ window.addEventListener('message', function (e) {
 });
 
 /* ═══════════════ 管理員設定（Supabase）═══════════════ */
-function pwProblem(pw, email) {
-  if (pw.length < 12) return '密碼至少需要 12 個字元';
+function pwProblem(pw, username) {
+  if (pw.length < 8) return '密碼至少需要 8 個字元';
   if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return '密碼需同時包含英文字母與數字';
-  var local = String(email || '').split('@')[0].toLowerCase();
+  var local = String(username || '').toLowerCase();
   if (local.length >= 3 && pw.toLowerCase().indexOf(local) >= 0) return '密碼不可包含帳號';
   return '';
 }
 async function loadAdmins() {
   setLoading(true, '載入管理員…');
-  try { allAdmins = await sbCheck(await sb.from('profiles').select('id,name,email,role,notify,created_at').order('created_at')); renderAdmins(); }
+  try { allAdmins = await sbCheck(await sb.from('profiles').select('id,name,username,email,role,notify,created_at').order('created_at')); renderAdmins(); }
   catch (e) { if (!/JWT|expired/i.test(e.message)) showToast('載入失敗：' + e.message, 'error'); }
   setLoading(false);
 }
@@ -804,7 +810,7 @@ function renderAdmins() {
     var mine = a.id === currentAdmin.id;
     return '<div class="admin-card"><div class="adm-avatar">' + esc((a.name || '?').charAt(0)) + '</div>' +
       '<div class="adm-info"><div class="adm-name">' + esc(a.name) + (mine ? '（我）' : '') + ' <span class="adm-role-badge ' + (a.role === 'super' ? 'role-super' : 'role-admin') + '">' + (a.role === 'super' ? '超級管理員' : '管理員') + '</span></div>' +
-      '<div class="adm-sub">' + esc(a.email) + (a.notify ? '　🔔 接收通知信' : '　<span style="color:#bbb">不接收通知信</span>') + '</div></div>' +
+      '<div class="adm-sub">帳號：' + esc(a.username) + (a.notify ? '　🔔 通知信寄到 ' + esc(a.email) : '　<span style="color:#bbb">不接收通知信</span>') + '</div></div>' +
       '<div class="adm-actions">' + ((isSuper || mine) ? '<button class="btn-secondary btn-sm" onclick="openAdminModal(' + i + ')">編輯</button>' : '') +
       (isSuper && !mine ? '<button class="btn-danger btn-sm" onclick="deleteAdmin(' + i + ')">刪除</button>' : '') + '</div></div>';
   }).join('');
@@ -813,10 +819,11 @@ function openAdminModal(i) {
   var a = (i == null) ? null : allAdmins[i], isSuper = currentAdmin.role === 'super';
   $('modal-admin-title').textContent = a ? '編輯管理員' : '新增管理員';
   $('adm-row').value = a ? a.id : '';
-  $('adm-name').value = a ? a.name : ''; $('adm-acc').value = a ? a.email : ''; $('adm-acc').disabled = !!a && !isSuper; $('adm-pw').value = '';
+  $('adm-name').value = a ? a.name : ''; $('adm-acc').value = a ? a.username : ''; $('adm-acc').disabled = !!a && !isSuper; $('adm-pw').value = '';
+  $('adm-email').value = a && a.email ? a.email : '';
   $('adm-pw-lbl').textContent = a ? '新密碼（不修改請留空）' : '密碼 *';
   $('adm-role').value = a ? a.role : 'admin'; $('adm-role').disabled = !isSuper;
-  $('adm-notify').checked = a ? !!a.notify : true;
+  $('adm-notify').checked = a ? !!a.notify : false;
   openModal('modal-admin');
 }
 function openMyAccount() {
@@ -825,27 +832,31 @@ function openMyAccount() {
   if (i >= 0) openAdminModal(i);
 }
 async function saveAdmin() {
-  var id = $('adm-row').value, name = $('adm-name').value.trim(), email = $('adm-acc').value.trim().toLowerCase(), pw = $('adm-pw').value;
+  var id = $('adm-row').value, name = $('adm-name').value.trim(), username = $('adm-acc').value.trim().toLowerCase(), pw = $('adm-pw').value;
+  var email = $('adm-email').value.trim().toLowerCase();                         // 通知信箱（選填）
   var role = $('adm-role').value, notify = $('adm-notify').checked, isSuper = currentAdmin.role === 'super';
-  if (!name || !email) { showToast('姓名與 Email 為必填', 'error'); return; }
+  if (!name || !username) { showToast('姓名與登入帳號為必填', 'error'); return; }
+  if (!/^[a-z0-9._-]{3,30}$/.test(username)) { showToast('帳號只能用英文字母、數字與 . _ -，長度 3～30 字元', 'error'); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('通知信箱格式不正確', 'error'); return; }
+  if (notify && !email) { showToast('要接收通知信，請填寫通知信箱', 'error'); return; }
   if (!id && !pw) { showToast('請設定密碼', 'error'); return; }
-  if (pw) { var pe = pwProblem(pw, email); if (pe) { showToast(pe, 'error'); return; } }
+  if (pw) { var pe = pwProblem(pw, username); if (pe) { showToast(pe, 'error'); return; } }
   setLoading(true, '儲存中…');
   try {
     if (!id) {
-      await adminFn({ action: 'create', email: email, password: pw, name: name, role: role, notify: notify });
+      await adminFn({ action: 'create', username: username, password: pw, name: name, role: role, notify: notify, email: email });
     } else if (isSuper) {
       var old = allAdmins.filter(function (a) { return a.id === id; })[0] || {};
-      var patch = { action: 'update', id: id, name: name, role: role, notify: notify };
-      if (email !== old.email) patch.email = email;
+      var patch = { action: 'update', id: id, name: name, role: role, notify: notify, email: email };
+      if (username !== old.username) patch.username = username;
       await adminFn(patch);
       if (pw) await adminFn({ action: 'reset_password', id: id, password: pw });
     } else {                                              // 一般管理員只能改自己的姓名、通知與密碼
-      await sbCheck(await sb.from('profiles').update({ name: name, notify: notify }).eq('id', currentAdmin.id).select('id'));
+      await sbCheck(await sb.from('profiles').update({ name: name, notify: notify, email: email || null }).eq('id', currentAdmin.id).select('id'));
       if (pw) { var u = await sb.auth.updateUser({ password: pw }); if (u.error) throw new Error(u.error.message); }
     }
     if (id === currentAdmin.id) {                         // 改的是自己
-      currentAdmin.name = name; currentAdmin.notify = notify;
+      currentAdmin.name = name; currentAdmin.notify = notify; currentAdmin.email = email || null;
       $('su-name').textContent = name; $('su-avatar').textContent = name.charAt(0);
     }
     closeModal('modal-admin');
