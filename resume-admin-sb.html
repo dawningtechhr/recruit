@@ -367,7 +367,7 @@ sb.auth.onAuthStateChange(function (ev) {          // 在別處（例如整合�
 (async function boot() {
   if (EMBED) document.documentElement.classList.add('embed');
   var ok = false; try { ok = await enterFromSession(); } catch (e) {}
-  if (!ok && EMBED) parent.postMessage({ type: 'dx-expired' }, '*');
+  if (EMBED) parent.postMessage({ type: ok ? 'dx-ready' : 'dx-expired' }, '*');          // 通知整合後台：已載入（或登入已失效）
 })();
 
 /* ═══════ 資料 ═══════ */
