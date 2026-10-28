@@ -26,7 +26,7 @@
         F('basic.name_zh', '中文姓名', 'text', { req: 1 }),
         F('basic.name_en', '英文名', 'text', { req: 1 }),
         F('basic.passport', '護照全名'),
-        F('basic.id_no', '身份證字號', 'text', { ph: 'A123456789', upper: 1, max: 12 }),
+        F('basic.id_no', '身份證字號', 'text', { upper: 1, max: 12 }),
         F('basic.birth', '出生日期（西元）', 'date'),
         F('basic.gender', '性別', 'select', { req: 1, opts: ['男', '女'] }),
         F('basic.marital', '婚姻', 'select', { req: 1, opts: ['單身', '已婚'] }),
