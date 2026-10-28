@@ -218,7 +218,7 @@ html,body{height:100%}
 #tab-mail .form-group{margin-bottom:14px}
 #tab-mail label{font-size:13px;font-weight:500;color:#3d3a34;display:block;margin-bottom:5px}
 #tab-mail .rq{color:#8b2020}
-#tab-mail input[type=text],#tab-mail input[type=date],#tab-mail select,#tab-mail textarea{width:100%;font-family:inherit;font-size:14px;padding:9px 12px;border:1px solid #e8e5de;border-radius:10px;background:#faf9f6;color:#1a1814;outline:none}
+#tab-mail input[type=text],#tab-mail input[type=date],#tab-mail input[type=time],#tab-mail select,#tab-mail textarea{width:100%;font-family:inherit;font-size:14px;padding:9px 12px;border:1px solid #e8e5de;border-radius:10px;background:#faf9f6;color:#1a1814;outline:none}
 #tab-mail input:focus,#tab-mail select:focus,#tab-mail textarea:focus{border-color:#e8671a;box-shadow:0 0 0 3px rgba(232,103,26,.12)}
 #tab-mail textarea{line-height:1.7;resize:vertical;min-height:360px}
 #tab-mail .mail-items{display:flex;flex-wrap:wrap;gap:10px}
@@ -303,7 +303,7 @@ html,body{height:100%}
           </div>
           <div class="mail-row c3">
             <div class="form-group"><label>面試日期 <span class="rq">*</span></label><input type="date" id="mail-date" oninput="mailChanged()"></div>
-            <div class="form-group"><label>面試時間 <span class="rq">*</span></label><select id="mail-time" onchange="mailChanged()"><option value="">請選擇</option></select></div>
+            <div class="form-group"><label>面試時間 <span class="rq">*</span></label><input type="time" id="mail-time" oninput="mailChanged()" onchange="mailChanged()"></div>
             <div class="form-group"><label>面試方式 <span class="rq">*</span></label>
               <div class="mail-items" id="mail-mode">
                 <label class="on"><input type="radio" name="mail-mode" value="onsite" checked onchange="mailModeChanged()">現場面試</label>
@@ -1128,19 +1128,9 @@ var MAIL_ITEMS = [
   { id: 'ai', label: 'AI 能力測驗', file: 'ai-assessment-sb.html', date: true, note: '選擇題 20 題（每題 30 秒）、問答題 3～5 題（不限時）。' }
 ];
 var mailInited = false, mailTouched = false;
-// 面試時間下拉選單：09:00～18:00，每 30 分鐘一個選項（例如「上午 9:30」「下午 2:00」）
-var MAIL_TIMES = (function () {
-  var a = [];
-  for (var m = 9 * 60; m <= 18 * 60; m += 30) {
-    var h = Math.floor(m / 60), mm = m % 60;
-    a.push((h < 12 ? '上午 ' : '下午 ') + (h > 12 ? h - 12 : h) + ':' + (mm < 10 ? '0' : '') + mm);
-  }
-  return a;
-})();
 function initMail() {
   if (mailInited) return;
   mailInited = true;
-  $('mail-time').innerHTML = '<option value="">請選擇</option>' + MAIL_TIMES.map(function (x) { return '<option>' + x + '</option>'; }).join('');
   $('mail-items').innerHTML = MAIL_ITEMS.map(function (it) {
     return '<label class="on"><input type="checkbox" value="' + it.id + '" checked onchange="this.parentNode.classList.toggle(\'on\', this.checked); mailChanged()">' + esc(it.label) + '</label>';
   }).join('');
@@ -1158,6 +1148,11 @@ function mailDateText(iso) {
   var d = new Date(+m[1], +m[2] - 1, +m[3]);
   return m[1] + '年' + (+m[2]) + '月' + (+m[3]) + '日（星期' + '日一二三四五六'.charAt(d.getDay()) + '）';
 }
+function mailTimeText(v) {                                      // 時間選擇器的值（24 小時制 HH:MM）→ 上午／下午 h:mm
+  var m = /^(\d{1,2}):(\d{2})/.exec(v || ''); if (!m) return '';
+  var h = +m[1];
+  return (h < 12 ? '上午 ' : '下午 ') + (h === 0 ? 12 : h > 12 ? h - 12 : h) + ':' + m[2];
+}
 function mailMode() { var r = document.querySelector('input[name="mail-mode"]:checked'); return r ? r.value : ''; }
 function mailModeChanged() {                                   // 現場面試 → 面試地點；視訊面試 → 視訊連結
   var m = mailMode();
@@ -1168,7 +1163,7 @@ function mailModeChanged() {                                   // 現場面試 �
 }
 function buildMail() {
   var one = function (id) { return $(id).value.replace(/\s+/g, ' ').trim(); };
-  var p = { name: one('mail-name'), phone: one('mail-phone'), job: one('mail-job'), date: $('mail-date').value, time: one('mail-time') };
+  var p = { name: one('mail-name'), phone: one('mail-phone'), job: one('mail-job'), date: $('mail-date').value, time: mailTimeText($('mail-time').value) };
   var mode = mailMode(), place = one('mail-place'), vlink = one('mail-vlink');
   var picked = MAIL_ITEMS.filter(function (it) { var c = document.querySelector('#mail-items input[value="' + it.id + '"]'); return c && c.checked; });
   var missing = [];
