@@ -215,6 +215,9 @@ html,body{height:100%}
 #tab-mail .mail-card h3{font-size:15px;font-weight:600;margin-bottom:14px;color:#1a1814}
 #tab-mail .mail-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 #tab-mail .mail-row.c3{grid-template-columns:1fr 1fr 1fr}
+#tab-mail .time24{display:flex;align-items:center;gap:6px}
+#tab-mail .time24 select{flex:1;min-width:0}
+#tab-mail .time24 span{font-weight:600;color:#7a7570}
 #tab-mail .form-group{margin-bottom:14px}
 #tab-mail label{font-size:13px;font-weight:500;color:#3d3a34;display:block;margin-bottom:5px}
 #tab-mail .rq{color:#8b2020}
@@ -303,7 +306,7 @@ html,body{height:100%}
           </div>
           <div class="mail-row c3">
             <div class="form-group"><label>面試日期 <span class="rq">*</span></label><input type="date" id="mail-date" oninput="mailChanged()"></div>
-            <div class="form-group"><label>面試時間 <span class="rq">*</span></label><input type="time" id="mail-time" oninput="mailChanged()" onchange="mailChanged()"></div>
+            <div class="form-group"><label>面試時間 <span class="rq">*</span></label><div class="time24"><select id="mail-hh" onchange="mailHourPicked()"></select><span>:</span><select id="mail-mm" onchange="mailChanged()"></select></div></div>
             <div class="form-group"><label>面試方式 <span class="rq">*</span></label>
               <div class="mail-items" id="mail-mode">
                 <label class="on"><input type="radio" name="mail-mode" value="onsite" checked onchange="mailModeChanged()">現場面試</label>
@@ -900,8 +903,9 @@ function enter(admin) {
   $('su-role').textContent = admin.role === 'super' ? '超級管理員' : '管理員';
   $('nav').innerHTML = '<div class="nav-sep">招募與評測</div>' +
     MODULES.map(function (m) { return '<div class="nav-item" data-id="' + m.id + '" onclick="openModule(\'' + m.id + '\')"><span class="ni">' + m.icon + '</span><span class="t">' + m.name + '</span></div>'; }).join('') +
-    '<div class="nav-item" data-id="pdf" onclick="openModule(\'pdf\')"><span class="ni">📑</span><span class="t">下載整合PDF</span></div>' +
+    '<div class="nav-sep">通知</div>' +
     '<div class="nav-item" data-id="mail" onclick="openModule(\'mail\')"><span class="ni">✉️</span><span class="t">產出面試信件</span></div>' +
+    '<div class="nav-item" data-id="pdf" onclick="openModule(\'pdf\')"><span class="ni">📑</span><span class="t">下載整合PDF</span></div>' +
     '<div class="nav-sep">系統</div><div class="nav-item" data-id="admins" onclick="openModule(\'admins\')"><span class="ni">👥</span><span class="t">管理員設定</span></div>' +
     (admin.role === 'super' ? '<div class="nav-item" data-id="audit" onclick="openModule(\'audit\')"><span class="ni">🧾</span><span class="t">操作紀錄</span></div>' : '');
   showScreen('s-admin');
@@ -1131,6 +1135,8 @@ var mailInited = false, mailTouched = false;
 function initMail() {
   if (mailInited) return;
   mailInited = true;
+  var pad = function (n) { return (n < 10 ? '0' : '') + n; }, opts = function (label, n) { var s = '<option value="">' + label + '</option>'; for (var i = 0; i < n; i++) s += '<option value="' + pad(i) + '">' + pad(i) + '</option>'; return s; };
+  $('mail-hh').innerHTML = opts('時', 24); $('mail-mm').innerHTML = opts('分', 60);       // 24 小時制：時 00～23、分 00～59（不限時段與分鐘）
   $('mail-items').innerHTML = MAIL_ITEMS.map(function (it) {
     return '<label class="on"><input type="checkbox" value="' + it.id + '" checked onchange="this.parentNode.classList.toggle(\'on\', this.checked); mailChanged()">' + esc(it.label) + '</label>';
   }).join('');
@@ -1148,11 +1154,8 @@ function mailDateText(iso) {
   var d = new Date(+m[1], +m[2] - 1, +m[3]);
   return m[1] + '年' + (+m[2]) + '月' + (+m[3]) + '日（星期' + '日一二三四五六'.charAt(d.getDay()) + '）';
 }
-function mailTimeText(v) {                                      // 時間選擇器的值（24 小時制 HH:MM）→ 上午／下午 h:mm
-  var m = /^(\d{1,2}):(\d{2})/.exec(v || ''); if (!m) return '';
-  var h = +m[1];
-  return (h < 12 ? '上午 ' : '下午 ') + (h === 0 ? 12 : h > 12 ? h - 12 : h) + ':' + m[2];
-}
+function mailTimeVal() { var h = $('mail-hh').value, m = $('mail-mm').value; return h !== '' && m !== '' ? h + ':' + m : ''; }     // 24 小時制 HH:MM
+function mailHourPicked() { if ($('mail-hh').value !== '' && $('mail-mm').value === '') $('mail-mm').value = '00'; mailChanged(); }   // 選了「時」，「分」先帶 00
 function mailMode() { var r = document.querySelector('input[name="mail-mode"]:checked'); return r ? r.value : ''; }
 function mailModeChanged() {                                   // 現場面試 → 面試地點；視訊面試 → 視訊連結
   var m = mailMode();
@@ -1163,7 +1166,7 @@ function mailModeChanged() {                                   // 現場面試 �
 }
 function buildMail() {
   var one = function (id) { return $(id).value.replace(/\s+/g, ' ').trim(); };
-  var p = { name: one('mail-name'), phone: one('mail-phone'), job: one('mail-job'), date: $('mail-date').value, time: mailTimeText($('mail-time').value) };
+  var p = { name: one('mail-name'), phone: one('mail-phone'), job: one('mail-job'), date: $('mail-date').value, time: mailTimeVal() };
   var mode = mailMode(), place = one('mail-place'), vlink = one('mail-vlink');
   var picked = MAIL_ITEMS.filter(function (it) { var c = document.querySelector('#mail-items input[value="' + it.id + '"]'); return c && c.checked; });
   var missing = [];
