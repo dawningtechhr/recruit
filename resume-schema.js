@@ -31,7 +31,7 @@
         F('basic.gender', '性別', 'select', { req: 1, opts: ['男', '女'] }),
         F('basic.marital', '婚姻', 'select', { req: 1, opts: ['單身', '已婚'] }),
         F('basic.military', '兵役', 'select', { opts: ['役畢', '免役', '未役', '不適用'] }),
-        F('basic.nation', '國籍', 'text', { req: 1, ph: '中華民國' }),
+        F('basic.nation', '國籍', 'text', { req: 1 }),
         F('basic.blood', '血型', 'select', { opts: ['A', 'B', 'O', 'AB'] }),
         F('basic.height', '身高（cm）', 'number'),
         F('basic.weight', '體重（kg）', 'number'),
