@@ -41,7 +41,7 @@
         F('basic.email', 'E-mail', 'email', { req: 1 }),
         F('addr.reg', '戶籍地址', 'text', { req: 1, wide: 1 }),
         F('addr.reg_tel', '戶籍電話', 'tel'),
-        F('addr.same', '通訊地址同戶籍地址', 'check'),
+        F('addr.same', '通訊地址同戶籍地址', 'check', { inlineWith: 'addr.mail' }),       // 勾選框顯示在「通訊地址」標題的右邊
         F('addr.mail', '通訊地址', 'text', { req: 1, wide: 1 }),
         F('addr.mail_tel', '通訊電話', 'tel'),
         F('emg.name', '緊急連絡人', 'text'),
@@ -372,11 +372,13 @@
     if (f.sum) at += ' readonly tabindex="-1"';
     return '<input type="' + f.type + '" name="' + name + '"' + at + '>';
   }
-  function fieldHTML(name, f, label) {
+  function fieldHTML(name, f, label, extra) {
     if (f.type === 'photo')
       return '<div class="fg wide" data-f="photo"><label>' + label + '</label><div class="photo"><div class="box" id="photoBox">2 吋照片<br>（上傳電子檔）</div><div><input type="file" id="photoFile" accept="image/*"><small>系統會自動縮圖；可先不上傳。</small></div><input type="hidden" name="photo"></div></div>';
     if (f.type === 'check' && f.hidden) return '';
     var lab = f.type === 'check' ? '' : '<label>' + (f.dl || label) + (f.req ? '<span class="rq">*</span>' : '') + '</label>';
+    if (extra && f.type !== 'check')           // extra：要放在這個欄位標題右邊的勾選框（例如「通訊地址」右邊的「通訊地址同戶籍地址」）
+      lab = '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:5px"><div style="margin:0;font-size:13px;font-weight:500;color:var(--ink2)">' + (f.dl || label) + (f.req ? '<span class="rq">*</span>' : '') + '</div><div style="margin:0">' + ctl(extra.k, extra) + '</div></div>';
     return '<div class="fg' + (f.wide ? ' wide' : '') + '" data-f="' + name + '">' + lab + ctl(name, f) + '</div>';
   }
   function cardHTML(b, i) {
@@ -420,7 +422,9 @@
             '<div class="fg" data-f="consent" style="margin-bottom:14px"><div class="rg"><label><input type="checkbox" name="consent" value="1">' + AGREE + '<span style="color:var(--danger)">*</span></label></div></div>';
         } else if (b.t === 'fields') {
           if (b.sub) body += '<div class="sub-title">' + b.sub + '</div>';
-          body += '<div class="grid">' + b.fields.map(function (f) { return fieldHTML(f.k, f, f.l); }).join('') + '</div>';
+          var inl = {};
+          b.fields.forEach(function (f) { if (f.inlineWith) inl[f.inlineWith] = f; });
+          body += '<div class="grid">' + b.fields.filter(function (f) { return !f.inlineWith; }).map(function (f) { return fieldHTML(f.k, f, f.l, inl[f.k]); }).join('') + '</div>';
         } else if (b.t === 'cards') {
           if (b.dyn) {
             var n = Math.max(b.init || 1, maxIdx(b, opts.data) + 1);       // 有現有資料時（後台編輯）顯示到最後一組有資料的組別
