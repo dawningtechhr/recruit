@@ -224,6 +224,7 @@ html,body{height:100%}
 #tab-mail input[type=text],#tab-mail input[type=date],#tab-mail input[type=time],#tab-mail select,#tab-mail textarea{width:100%;font-family:inherit;font-size:14px;padding:9px 12px;border:1px solid #e8e5de;border-radius:10px;background:#faf9f6;color:#1a1814;outline:none}
 #tab-mail input:focus,#tab-mail select:focus,#tab-mail textarea:focus{border-color:#e8671a;box-shadow:0 0 0 3px rgba(232,103,26,.12)}
 #tab-mail textarea{line-height:1.7;resize:vertical;min-height:360px}
+#tab-mail #mail-subject,#tab-mail #mail-body{font-family:'Microsoft JhengHei','微軟正黑體',sans-serif}
 #tab-mail .mail-items{display:flex;flex-wrap:wrap;gap:10px}
 #tab-mail .mail-items label{display:flex;align-items:center;gap:8px;margin:0;padding:9px 14px;border:1px solid #e8e5de;border-radius:10px;background:#faf9f6;cursor:pointer;font-weight:400;font-size:13px}
 #tab-mail .mail-items label.on{border-color:#e8671a;background:#fef3ec;color:#c9540f;font-weight:500}
@@ -1202,7 +1203,7 @@ function buildMail() {
   L.push('．測驗開始後無法暫停，請在安靜、不受打擾的環境下獨立完成。');
   L.push('．請使用電腦或手機的瀏覽器開啟連結；若連結無法開啟，請與我們聯繫。', '');
   L.push('期待與您見面，如有任何問題歡迎隨時來信或來電。', '');
-  L.push('敬祝 順心', '敦新科技股份有限公司 人力資源部 敬上');
+  L.push('敬祝 順心', '敦新科技股份有限公司 人資營運處 敬上');
   return { subject: '【敦新科技】面試邀約通知－' + p.name, body: L.join('\n'), hint: '' };
 }
 function mailRegen() {
@@ -1213,12 +1214,29 @@ function mailRegen() {
 }
 function mailChanged() { if (!mailTouched) mailRegen(); }
 function mailEdited() { mailTouched = true; }
+// 內文用「微軟正黑體」顯示；複製時同時放入純文字與 HTML（HTML 內指定微軟正黑體、網址轉成連結），
+// 貼到 Outlook、Gmail 等信件編輯器時會保留字型與連結，貼到純文字欄位則是一般文字。
+var MAIL_FONT = "'Microsoft JhengHei','微軟正黑體',sans-serif";
+function mailHtml(text) {
+  var e = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var lines = text.split('\n').map(function (l) {
+    return e(l).replace(/(https?:\/\/[^\s<]+)/g, function (u) { return '<a href="' + u + '">' + u + '</a>'; });
+  });
+  return '<div style="font-family:' + MAIL_FONT + ';font-size:11pt;line-height:1.7">' + lines.join('<br>') + '</div>';
+}
 function copyMail(id, btn) {
   var el = $(id), text = el.value;
   if (!text) { showToast('請先填寫必填欄位並勾選項目', 'error'); return; }
   var done = function () { showToast(id === 'mail-body' ? '已複製內文' : '已複製主旨', 'success'); };
   var fallback = function () { el.focus(); el.select(); try { document.execCommand('copy') ? done() : showToast('複製失敗，請手動選取複製', 'error'); } catch (e) { showToast('複製失敗，請手動選取複製', 'error'); } };
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  var plain = function () { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback(); };
+  if (id === 'mail-body' && navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+    try {
+      navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([mailHtml(text)], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]).then(done, plain);
+      return;
+    } catch (e) { /* 不支援時改用純文字 */ }
+  }
+  plain();
 }
 
 /* ═══════════════ 管理員設定（Supabase）═══════════════ */
