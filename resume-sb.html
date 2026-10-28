@@ -334,7 +334,9 @@ var CONSENT = RS.consentHTML();       // 個資告知事項全文（定義在 re
     var qp = new URLSearchParams(location.search), qn = (qp.get('name') || '').trim().slice(0, 100), qj = (qp.get('job') || '').trim().slice(0, 200);
     if (qn) form.elements['basic.name_zh'].value = qn;
     if (qj) form.elements['job.title'].value = qj;                 // 應徵職務
-    if (qn || qj) progress();
+    var qt = (qp.get('phone') || '').trim().slice(0, 40);
+    if (qt) form.elements['basic.mobile'].value = qt;              // 行動電話
+    if (qn || qj || qt) progress();
   } catch (e) {}
   if (DEMO) $('#notice').innerHTML += '<div class="banner info"><b>【示範模式】</b>尚未設定 Apps Script 網址，送出時不會寫入試算表，只會存在本機示範資料（可在示範後台看到）。</div>';
 

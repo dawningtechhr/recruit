@@ -214,6 +214,7 @@ html,body{height:100%}
 #tab-mail .mail-card{background:#fff;border:1px solid #e8e5de;border-radius:14px;padding:20px 24px;margin-bottom:20px}
 #tab-mail .mail-card h3{font-size:15px;font-weight:600;margin-bottom:14px;color:#1a1814}
 #tab-mail .mail-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#tab-mail .mail-row.c3{grid-template-columns:1fr 1fr 1fr}
 #tab-mail .form-group{margin-bottom:14px}
 #tab-mail label{font-size:13px;font-weight:500;color:#3d3a34;display:block;margin-bottom:5px}
 #tab-mail .rq{color:#8b2020}
@@ -224,6 +225,8 @@ html,body{height:100%}
 #tab-mail .mail-items label{display:flex;align-items:center;gap:8px;margin:0;padding:9px 14px;border:1px solid #e8e5de;border-radius:10px;background:#faf9f6;cursor:pointer;font-weight:400;font-size:13px}
 #tab-mail .mail-items label.on{border-color:#e8671a;background:#fef3ec;color:#c9540f;font-weight:500}
 #tab-mail .mail-items input{width:auto}
+#tab-mail #mail-mode{gap:6px}
+#tab-mail #mail-mode label{padding:8px 10px;white-space:nowrap}
 #tab-mail .mail-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 #tab-mail .btn-secondary{background:#fff;color:#1a1814;border:1px solid #e8e5de;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:400;cursor:pointer}
 #tab-mail .btn-secondary:hover{background:#f8f6f1;border-color:#b0acaa}
@@ -293,15 +296,22 @@ html,body{height:100%}
         <div class="page-title">產出面試信件</div>
         <div class="mail-card">
           <h3>面試資料</h3>
-          <div class="mail-row">
+          <div class="mail-row c3">
             <div class="form-group"><label>姓名 <span class="rq">*</span></label><input type="text" id="mail-name" placeholder="求職者姓名" oninput="mailChanged()" autocomplete="off"></div>
+            <div class="form-group"><label>電話（選填）</label><input type="text" id="mail-phone" placeholder="例：0912-345-678" oninput="mailChanged()" autocomplete="off"></div>
             <div class="form-group"><label>應徵職務（選填）</label><input type="text" id="mail-job" placeholder="例：行銷專員" oninput="mailChanged()" autocomplete="off"></div>
           </div>
-          <div class="mail-row">
-            <div class="form-group"><label>面試日期（選填）</label><input type="date" id="mail-date" oninput="mailChanged()"></div>
-            <div class="form-group"><label>面試時間（選填）</label><input type="text" id="mail-time" placeholder="例：下午 2:00" oninput="mailChanged()" autocomplete="off"></div>
+          <div class="mail-row c3">
+            <div class="form-group"><label>面試日期 <span class="rq">*</span></label><input type="date" id="mail-date" oninput="mailChanged()"></div>
+            <div class="form-group"><label>面試時間 <span class="rq">*</span></label><input type="text" id="mail-time" placeholder="例：下午 2:00" oninput="mailChanged()" autocomplete="off"></div>
+            <div class="form-group"><label>面試方式 <span class="rq">*</span></label>
+              <div class="mail-items" id="mail-mode">
+                <label class="on"><input type="radio" name="mail-mode" value="onsite" checked onchange="mailModeChanged()">現場面試</label>
+                <label><input type="radio" name="mail-mode" value="video" onchange="mailModeChanged()">視訊面試</label>
+              </div></div>
           </div>
-          <div class="form-group"><label>面試地點（選填）</label><input type="text" id="mail-place" placeholder="例：台北市○○區○○路○號 5 樓" oninput="mailChanged()" autocomplete="off"></div>
+          <div class="form-group" id="mail-place-wrap"><label>面試地點 <span class="rq">*</span></label><input type="text" id="mail-place" value="臺北市中山區民生東路三段49號9樓" oninput="mailChanged()" autocomplete="off"></div>
+          <div class="form-group" id="mail-link-wrap" style="display:none"><label>視訊連結 <span class="rq">*</span></label><input type="text" id="mail-vlink" placeholder="例：https://meet.google.com/xxx-xxxx-xxx" oninput="mailChanged()" autocomplete="off"></div>
           <div class="form-group" style="margin-bottom:0"><label>請求職者填寫或測驗的項目</label><div class="mail-items" id="mail-items"></div></div>
         </div>
         <div class="mail-card">
@@ -1126,10 +1136,11 @@ function initMail() {
   }).join('');
   mailRegen();
 }
-function mailLink(it, name, date, job) {
-  var u = MAIL_BASE + it.file + '?name=' + encodeURIComponent(name);
-  if (job) u += '&job=' + encodeURIComponent(job);                        // 有填應徵職務就帶入（個人資料表與四個測驗都有這個欄位）
-  if (it.date && date) u += '&date=' + encodeURIComponent(date);
+function mailLink(it, p) {
+  var u = MAIL_BASE + it.file + '?name=' + encodeURIComponent(p.name);
+  if (p.phone) u += '&phone=' + encodeURIComponent(p.phone);               // 有填電話、應徵職務就帶入（個人資料表與四個測驗都有這兩個欄位）
+  if (p.job) u += '&job=' + encodeURIComponent(p.job);
+  if (it.date && p.date) u += '&date=' + encodeURIComponent(p.date);      // 面試日期只有四個測驗頁有欄位
   return u;
 }
 function mailDateText(iso) {
@@ -1137,46 +1148,62 @@ function mailDateText(iso) {
   var d = new Date(+m[1], +m[2] - 1, +m[3]);
   return m[1] + '年' + (+m[2]) + '月' + (+m[3]) + '日（星期' + '日一二三四五六'.charAt(d.getDay()) + '）';
 }
+function mailMode() { var r = document.querySelector('input[name="mail-mode"]:checked'); return r ? r.value : ''; }
+function mailModeChanged() {                                   // 現場面試 → 面試地點；視訊面試 → 視訊連結
+  var m = mailMode();
+  document.querySelectorAll('#mail-mode label').forEach(function (l) { l.classList.toggle('on', l.querySelector('input').checked); });
+  $('mail-place-wrap').style.display = m === 'onsite' ? '' : 'none';
+  $('mail-link-wrap').style.display = m === 'video' ? '' : 'none';
+  mailChanged();
+}
 function buildMail() {
   var one = function (id) { return $(id).value.replace(/\s+/g, ' ').trim(); };
-  var name = one('mail-name'), date = $('mail-date').value, job = one('mail-job'), time = one('mail-time'), place = one('mail-place');
+  var p = { name: one('mail-name'), phone: one('mail-phone'), job: one('mail-job'), date: $('mail-date').value, time: one('mail-time') };
+  var mode = mailMode(), place = one('mail-place'), vlink = one('mail-vlink');
   var picked = MAIL_ITEMS.filter(function (it) { var c = document.querySelector('#mail-items input[value="' + it.id + '"]'); return c && c.checked; });
-  if (!name) return { subject: '', body: '', hint: '請先填寫姓名。' };
+  var missing = [];
+  if (!p.name) missing.push('姓名');
+  if (!mailDateText(p.date)) missing.push('面試日期');
+  if (!p.time) missing.push('面試時間');
+  if (!mode) missing.push('面試方式');
+  if (mode === 'onsite' && !place) missing.push('面試地點');
+  if (mode === 'video' && !vlink) missing.push('視訊連結');
+  if (missing.length) return { subject: '', body: '', hint: '請先填寫必填欄位：' + missing.join('、') + '。' };
+  if (mode === 'video' && !/^https?:\/\/\S+$/i.test(vlink)) return { subject: '', body: '', hint: '視訊連結需是以 http:// 或 https:// 開頭的網址。' };
   if (!picked.length) return { subject: '', body: '', hint: '請至少勾選一個項目。' };
-  var dateText = mailDateText(date), carriesDate = !!dateText && picked.some(function (it) { return it.date; });
+  var carriesDate = picked.some(function (it) { return it.date; });
   var L = [];
-  L.push(name + ' 您好：', '');
-  L.push('感謝您應徵敦新科技股份有限公司' + (job ? '的「' + job + '」職務' : '') + '，我們誠摯邀請您前來面試。', '');
-  var info = [];
-  if (job) info.push('應徵職務：' + job);
-  if (dateText) info.push('面試日期：' + dateText);
-  if (time) info.push('面試時間：' + time);
-  if (place) info.push('面試地點：' + place);
-  if (info.length) L.push.apply(L, info.concat(['']));
-  var carried = ['姓名'].concat(job ? ['應徵職務'] : []).concat(carriesDate ? ['面試日期'] : []);
+  L.push(p.name + ' 您好：', '');
+  L.push('感謝您應徵敦新科技股份有限公司' + (p.job ? '的「' + p.job + '」職務' : '') + '，我們誠摯邀請您前來面試。', '');
+  if (p.job) L.push('應徵職務：' + p.job);
+  L.push('面試日期：' + mailDateText(p.date));
+  L.push('面試時間：' + p.time);
+  L.push('面試方式：' + (mode === 'video' ? '視訊面試' : '現場面試'));
+  L.push(mode === 'video' ? '視訊連結：' + vlink : '面試地點：' + place, '');
+  var carried = ['姓名'].concat(p.phone ? ['電話'] : []).concat(p.job ? ['應徵職務'] : []).concat(carriesDate ? ['面試日期'] : []);
   var carriedText = carried.length > 1 ? carried.slice(0, -1).join('、') + '與' + carried[carried.length - 1] : carried[0];
   L.push('為了讓面試順利進行，請您於面試前完成下列項目。點選連結即可開始填寫，頁面會自動帶入您的' + carriedText + '，請先確認是否正確：', '');
   picked.forEach(function (it, i) {
-    L.push((i + 1) + '. ' + it.label, mailLink(it, name, date, job), '   ' + it.note, '');
+    L.push((i + 1) + '. ' + it.label, mailLink(it, p), '   ' + it.note, '');
   });
   L.push('注意事項：');
   L.push('．測驗開始後無法暫停，請在安靜、不受打擾的環境下獨立完成。');
   L.push('．請使用電腦或手機的瀏覽器開啟連結；若連結無法開啟，請與我們聯繫。', '');
   L.push('期待與您見面，如有任何問題歡迎隨時來信或來電。', '');
   L.push('敬祝 順心', '敦新科技股份有限公司 人力資源部 敬上');
-  return { subject: '【敦新科技】面試邀約通知－' + name, body: L.join('\n'), hint: '' };
+  return { subject: '【敦新科技】面試邀約通知－' + p.name, body: L.join('\n'), hint: '' };
 }
 function mailRegen() {
   mailTouched = false;
   var r = buildMail();
   $('mail-subject').value = r.subject; $('mail-body').value = r.body;
-  $('mail-hint').textContent = r.hint || '連結已帶入姓名' + ($('mail-job').value.trim() ? '、應徵職務' : '') + ($('mail-date').value ? '與面試日期（個人資料表不含面試日期欄位）' : '') + '。內文可以直接修改（修改後再改上方資料不會覆蓋，要重新套用請按「重新產生」）。複製後貼到您的信箱寄出即可，本頁不會自動寄信。';
+  $('mail-hint').textContent = r.hint || '連結已帶入姓名' + ($('mail-phone').value.trim() ? '、電話' : '') + ($('mail-job').value.trim() ? '、應徵職務' : '') + '與面試日期（個人資料表沒有面試日期欄位，只帶其他資料）。內文可以直接修改（修改後再改上方資料不會覆蓋，要重新套用請按「重新產生」）。複製後貼到您的信箱寄出即可，本頁不會自動寄信。';
 }
 function mailChanged() { if (!mailTouched) mailRegen(); }
 function mailEdited() { mailTouched = true; }
 function copyMail(id, btn) {
   var el = $(id), text = el.value;
-  if (!text) { showToast('請先填寫姓名並勾選項目', 'error'); return; }
+  if (!text) { showToast('請先填寫必填欄位並勾選項目', 'error'); return; }
   var done = function () { showToast(id === 'mail-body' ? '已複製內文' : '已複製主旨', 'success'); };
   var fallback = function () { el.focus(); el.select(); try { document.execCommand('copy') ? done() : showToast('複製失敗，請手動選取複製', 'error'); } catch (e) { showToast('複製失敗，請手動選取複製', 'error'); } };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
