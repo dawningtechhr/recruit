@@ -285,11 +285,11 @@ html,body{height:100%}
         <div class="table-wrap">
           <div class="table-head">
             <h3>求職者列表</h3>
-            <div class="search-bar"><span class="si">🔍</span><input type="text" id="pdf-search" placeholder="搜尋姓名或電話…" oninput="renderPdfList()"></div>
+            <div class="search-bar"><span class="si">🔍</span><input type="text" id="pdf-search" placeholder="搜尋姓名、職務或電話…" oninput="renderPdfList()"></div>
             <button class="btn-secondary btn-sm" onclick="loadPdfList()">🔄 重新整理</button>
           </div>
           <div class="tbl-scroll">
-            <table><thead><tr><th>姓名</th><th>個人資料</th><th>人格特質</th><th>邏輯能力</th><th>英文能力</th><th>AI能力</th><th id="pdf-th-date" onclick="sortPdf()" style="cursor:pointer;user-select:none">面試日期 ⇅</th><th>下載整合PDF</th></tr></thead><tbody id="pdf-body"></tbody></table>
+            <table><thead><tr><th>姓名</th><th>應徵職務</th><th>個人資料</th><th>人格特質</th><th>邏輯能力</th><th>英文能力</th><th>AI能力</th><th id="pdf-th-date" onclick="sortPdf()" style="cursor:pointer;user-select:none">面試日期 ⇅</th><th>下載整合PDF</th></tr></thead><tbody id="pdf-body"></tbody></table>
           </div>
           <div id="pdf-empty" style="display:none;text-align:center;color:var(--ink3);padding:40px">尚無符合的求職者</div>
         </div>
@@ -1018,14 +1018,25 @@ function buildApplicants(src) {
   var groups = {}, order = [];
   function add(kind, r, extra) {
     var name = String(r.name || '').trim(), p = digitsOf(r.phone), key = p.length >= 8 ? 'p' + p : 'n' + name;
-    var g = groups[key]; if (!g) { g = groups[key] = { key: key, name: name, phone: p.length >= 8 ? String(r.phone || '').trim() : '', latest: '', date: '', items: {} }; order.push(key); }
+    var g = groups[key]; if (!g) { g = groups[key] = { key: key, name: name, phone: p.length >= 8 ? String(r.phone || '').trim() : '', latest: '', date: '', items: {}, jobs: {} }; order.push(key); }
     var d = String(r.interview_date || '').trim(); if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > g.date) g.date = d;
     var cur = g.items[kind];
     if (!cur || String(r.created_at) > String(cur.created_at)) g.items[kind] = { created_at: r.created_at, v: extra };
     if (String(r.created_at) > g.latest) g.latest = String(r.created_at);
     if (kind === 'resume') g.name = name || g.name;
+    var job = String(r.job || '').replace(/\s+/g, ' ').trim();                    // 應徵職務：個人資料表與四個測驗填的，每份各算一次
+    if (job) {                                                // 比對時忽略空白與英文大小寫（「行銷專員」「行銷 專員」「pm」「PM」視為同一個）
+      var jk = job.replace(/\s+/g, '').toLowerCase(), j = g.jobs[jk] || (g.jobs[jk] = { n: 0, r: 0, last: '', text: job });
+      j.n++; if (kind === 'resume') j.r++; if (String(r.created_at) > j.last) { j.last = String(r.created_at); j.text = job; }
+    }
   }
-  src.resumes.forEach(function (r) { add('resume', { name: r.name, phone: r.mobile, created_at: r.created_at }, true); });
+  // 應徵職務取填寫次數最多的；次數相同以個人資料表填的為準；還是相同取最近一次填的；都沒填就是空白
+  function topJob(jobs) {
+    var best = '', b = null;
+    Object.keys(jobs).forEach(function (k) { var j = jobs[k]; if (!b || j.n > b.n || (j.n === b.n && (j.r > b.r || (j.r === b.r && j.last > b.last)))) { b = j; best = j.text; } });
+    return best;
+  }
+  src.resumes.forEach(function (r) { add('resume', { name: r.name, phone: r.mobile, job: r.job_title, created_at: r.created_at }, true); });
   src.personality.forEach(function (r) { add('personality', r, true); });
   src.logic.forEach(function (r) { add('logic', r, r.weighted_score); });
   src.english.forEach(function (r) { add('english', r, r.weighted_score); });
@@ -1039,19 +1050,20 @@ function buildApplicants(src) {
     Object.keys(g.items).forEach(function (kind) { var a = host.items[kind], b = g.items[kind]; if (!a || String(b.created_at) > String(a.created_at)) host.items[kind] = b; });
     if (g.latest > host.latest) host.latest = g.latest;
     if (g.date > host.date) host.date = g.date;
+    Object.keys(g.jobs).forEach(function (jn) { var s = g.jobs[jn], h = host.jobs[jn] || (host.jobs[jn] = { n: 0, r: 0, last: '', text: s.text }); h.n += s.n; h.r += s.r; if (s.last > h.last) { h.last = s.last; h.text = s.text; } });
     delete groups[k];
   });
-  return Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return a.latest < b.latest ? 1 : a.latest > b.latest ? -1 : 0; });
+  return Object.keys(groups).map(function (k) { var g = groups[k]; g.job = topJob(g.jobs); return g; }).sort(function (a, b) { return a.latest < b.latest ? 1 : a.latest > b.latest ? -1 : 0; });
 }
 async function loadPdfList() {
   setLoading(true, '載入求職者名單…');
   try {
     var res = await Promise.all([
-      fetchAllRows('resumes', 'name,mobile,created_at'),
-      fetchAllRows('assessments_personality', 'name,phone,interview_date,created_at'),
-      fetchAllRows('assessments_logic', 'name,phone,interview_date,weighted_score,created_at'),
-      fetchAllRows('assessments_english', 'name,phone,interview_date,weighted_score,created_at'),
-      fetchAllRows('assessments_ai', 'name,phone,interview_date,mcq_correct,created_at')
+      fetchAllRows('resumes', 'name,mobile,job_title,created_at'),
+      fetchAllRows('assessments_personality', 'name,phone,job,interview_date,created_at'),
+      fetchAllRows('assessments_logic', 'name,phone,job,interview_date,weighted_score,created_at'),
+      fetchAllRows('assessments_english', 'name,phone,job,interview_date,weighted_score,created_at'),
+      fetchAllRows('assessments_ai', 'name,phone,job,interview_date,mcq_correct,created_at')
     ]);
     pdfRows = buildApplicants({ resumes: res[0], personality: res[1], logic: res[2], english: res[3], ai: res[4] });
     renderPdfList();
@@ -1063,7 +1075,7 @@ function renderPdfList() {
   var ok = '<span class="st-ok">完成</span>', no = '<span class="st-no">未完成</span>', nt = '<span class="st-no">未測驗</span>';
   var score = function (it, unit) { return it ? '<span class="st-score">' + esc(it.v == null ? '—' : it.v) + esc(unit) + '</span>' : nt; };
   var list = pdfRows.map(function (g, i) { return { g: g, i: i }; }).filter(function (x) {
-    return !kw || x.g.name.toLowerCase().indexOf(kw) >= 0 || (kd && digitsOf(x.g.phone).indexOf(kd) >= 0);
+    return !kw || x.g.name.toLowerCase().indexOf(kw) >= 0 || x.g.job.toLowerCase().indexOf(kw) >= 0 || (kd && digitsOf(x.g.phone).indexOf(kd) >= 0);
   });
   if (pdfSort.by === 'date') {                       // 依面試日期排序；沒有面試日期的一律排在最後
     list.sort(function (a, b) {
@@ -1076,6 +1088,7 @@ function renderPdfList() {
   $('pdf-body').innerHTML = list.map(function (x) {
     var g = x.g, it = g.items;
     return '<tr><td><strong>' + esc(g.name || '（未填姓名）') + '</strong>' + (g.phone ? '<div style="font-size:11px;color:var(--ink3);font-weight:400;font-family:\'JetBrains Mono\',monospace">' + esc(g.phone) + '</div>' : '') + '</td>' +
+      '<td>' + (g.job ? esc(g.job) : '<span style="color:#bbb">—</span>') + '</td>' +
       '<td>' + (it.resume ? ok : no) + '</td><td>' + (it.personality ? ok : no) + '</td>' +
       '<td>' + score(it.logic, ' 分') + '</td><td>' + score(it.english, ' 分') + '</td><td>' + score(it.ai, ' / 20') + '</td>' +
       '<td>' + (g.date ? esc(g.date) : '<span style="color:#bbb">—</span>') + '</td>' +
