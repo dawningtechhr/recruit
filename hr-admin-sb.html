@@ -328,8 +328,8 @@ html,body{height:100%}
         </div>
         <div class="mail-card">
           <h3>面談通知信件</h3>
-          <div class="form-group"><label>主旨</label><input type="text" id="mail-subject" autocomplete="off"></div>
-          <div class="form-group"><label>內文（可以直接修改）</label><textarea id="mail-body" oninput="mailEdited()"></textarea></div>
+          <div class="form-group"><label>主旨</label><input type="text" id="mail-subject" autocomplete="off" style="font-family:'Microsoft JhengHei','微軟正黑體',sans-serif"></div>
+          <div class="form-group"><label>內文（可以直接修改）</label><textarea id="mail-body" oninput="mailEdited()" style="font-family:'Microsoft JhengHei','微軟正黑體',sans-serif"></textarea></div>
           <div class="mail-actions">
             <button class="btn-primary" onclick="copyMail('mail-body', this)">📋 複製內文</button>
             <button class="btn-secondary" onclick="copyMail('mail-subject', this)">複製主旨</button>
@@ -1263,12 +1263,15 @@ function mailPlain(text) {
 function mailHtml(text) {
   var e = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   var m = mailLinkMap();
+  // 每一行、每個連結都各自指定微軟正黑體（Outlook 會替連結套用自己的字型，只在最外層指定不夠；mso-fareast-font-family 供 Word／Outlook 的中文字型使用））
+  var FS = 'font-family:' + MAIL_FONT + ";mso-fareast-font-family:'Microsoft JhengHei';mso-ascii-font-family:'Microsoft JhengHei';font-size:11pt";
   var lines = text.split('\n').map(function (l) {
-    var k = l.replace(/\s+$/, '');
-    if (m[k]) return '•<a href="' + e(m[k]).replace(/"/g, '&quot;') + '">' + e(k.slice(1)) + '</a>';
-    return e(l).replace(/(https?:\/\/[^\s<]+)/g, function (u) { return '<a href="' + u + '">' + u + '</a>'; });
+    var k = l.replace(/\s+$/, ''), h;
+    if (m[k]) h = '•<a href="' + e(m[k]).replace(/"/g, '&quot;') + '" style="' + FS + '">' + e(k.slice(1)) + '</a>';
+    else h = e(l).replace(/(https?:\/\/[^\s<]+)/g, function (u) { return '<a href="' + u + '" style="' + FS + '">' + u + '</a>'; });
+    return '<p style="margin:0;line-height:1.7;' + FS + '"><span style="' + FS + '">' + (h || '&nbsp;') + '</span></p>';
   });
-  return '<div style="font-family:' + MAIL_FONT + ';font-size:11pt;line-height:1.7">' + lines.join('<br>') + '</div>';
+  return '<div style="' + FS + '">' + lines.join('') + '</div>';
 }
 function copyMail(id, btn) {
   var el = $(id), text = el.value;
