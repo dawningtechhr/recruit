@@ -229,8 +229,8 @@ html,body{height:100%}
 #tab-mail .mail-items label{display:flex;align-items:center;gap:8px;margin:0;padding:9px 14px;border:1px solid #e8e5de;border-radius:10px;background:#faf9f6;cursor:pointer;font-weight:400;font-size:13px}
 #tab-mail .mail-items label.on{border-color:#e8671a;background:#fef3ec;color:#c9540f;font-weight:500}
 #tab-mail .mail-items input{width:auto}
-#tab-mail #mail-mode{gap:6px}
-#tab-mail #mail-mode label{padding:8px 10px;white-space:nowrap}
+#tab-mail #mail-mode,#tab-mail #mail-hon{gap:6px;flex-wrap:nowrap}
+#tab-mail #mail-mode label,#tab-mail #mail-hon label{padding:8px 10px;white-space:nowrap}
 #tab-mail .mail-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 #tab-mail .btn-secondary{background:#fff;color:#1a1814;border:1px solid #e8e5de;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:400;cursor:pointer}
 #tab-mail .btn-secondary:hover{background:#f8f6f1;border-color:#b0acaa}
@@ -300,8 +300,16 @@ html,body{height:100%}
         <div class="page-title">產出面談信件</div>
         <div class="mail-card">
           <h3>面談資料</h3>
-          <div class="mail-row c3">
-            <div class="form-group"><label>姓名 <span class="rq">*</span></label><input type="text" id="mail-name" placeholder="求職者姓名" oninput="mailChanged()" autocomplete="off"></div>
+          <div class="mail-row c3" style="grid-template-columns:1.7fr 1fr 1fr">
+            <div class="form-group"><label>姓名 <span class="rq">*</span></label>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="text" id="mail-name" placeholder="求職者姓名" oninput="mailChanged()" autocomplete="off" style="flex:1;min-width:0">
+                <div class="mail-items" id="mail-hon">
+                  <label><input type="radio" name="mail-hon" value="先生" onchange="mailHonChanged()">先生</label>
+                  <label><input type="radio" name="mail-hon" value="女士" onchange="mailHonChanged()">女士</label>
+                  <label><input type="radio" name="mail-hon" value="小姐" onchange="mailHonChanged()">小姐</label>
+                </div>
+              </div></div>
             <div class="form-group"><label>電話（選填）</label><input type="text" id="mail-phone" placeholder="例：0912-345-678" oninput="mailChanged()" autocomplete="off"></div>
             <div class="form-group"><label>應徵職務（選填）</label><input type="text" id="mail-job" placeholder="例：行銷專員" oninput="mailChanged()" autocomplete="off"></div>
           </div>
@@ -314,8 +322,8 @@ html,body{height:100%}
                 <label><input type="radio" name="mail-mode" value="video" onchange="mailModeChanged()">視訊面談</label>
               </div></div>
           </div>
-          <div class="form-group" id="mail-place-wrap"><label>面談地點 <span class="rq">*</span></label><input type="text" id="mail-place" value="臺北市中山區民生東路三段49號9樓" oninput="mailChanged()" autocomplete="off"></div>
-          <div class="form-group" id="mail-link-wrap" style="display:none"><label>視訊連結 <span class="rq">*</span></label><input type="text" id="mail-vlink" placeholder="例：https://meet.google.com/xxx-xxxx-xxx" oninput="mailChanged()" autocomplete="off"></div>
+          <div class="form-group" id="mail-place-wrap"><label>面談地點 <span class="rq">*</span></label><input type="text" id="mail-place" value="台北市中山區民生東路三段49號9樓" oninput="mailChanged()" autocomplete="off"></div>
+          <div class="form-group" id="mail-link-wrap" style="display:none"><label>視訊連結 <span class="rq">*</span></label><input type="text" id="mail-vlink" placeholder="貼上視訊連結或會議資訊（格式不限）" oninput="mailChanged()" autocomplete="off"></div>
           <div class="form-group" style="margin-bottom:0"><label>請求職者填寫或測驗的項目</label><div class="mail-items" id="mail-items"></div></div>
         </div>
         <div class="mail-card">
@@ -1142,14 +1150,16 @@ window.dxCombinedPdf = async function (name, phone, btn, opts) {
 };
 
 /* ═══════════════ 產出面談信件 ═══════════════ */
-// 求職者實際使用的網址（GitHub Pages）。連結後面帶 ?name=姓名（一定帶入）與 &date=面談日期（測驗頁才有，有填才帶）
+// 求職者實際使用的網址（GitHub Pages）。連結後面帶 ?name=姓名（一定帶入）、&phone=電話、&job=應徵職務（有填才帶），
+// 與 &date=面談日期（測驗頁才有欄位，有填才帶）。短網址不會轉送這些參數，所以信中使用完整網址。
+// label：勾選鈕上的名稱；mail：信件內文裡的名稱，順序即信件中的順序。
 var MAIL_BASE = 'https://dawningtechhr.github.io/recruit/';
 var MAIL_ITEMS = [
-  { id: 'resume', label: '個人資料表', file: 'resume-sb.html', date: false, note: '請如實填寫，送出後無法自行修改。' },
-  { id: 'personality', label: '人格特質分析', file: 'personality-assessment-sb.html', date: true, note: '共 90 題，總時限 35 分鐘。' },
-  { id: 'logic', label: '邏輯能力測驗', file: 'logic-assessment-sb.html', date: true, note: '共 30 題，總時限 20 分鐘。' },
-  { id: 'english', label: '英文能力測驗', file: 'english-assessment-sb.html', date: true, note: '共 25 題（含聽力，請準備可以播放聲音的裝置或耳機），總時限 30 分鐘。' },
-  { id: 'ai', label: 'AI 能力測驗', file: 'ai-assessment-sb.html', date: true, note: '選擇題 20 題（每題 30 秒）、問答題 3～5 題（不限時）。' }
+  { id: 'resume', label: '個人資料表', mail: '公司制式資料表', file: 'resume-sb.html', date: false },
+  { id: 'personality', label: '人格特質分析', mail: '人格特質測驗', file: 'personality-assessment-sb.html', date: true },
+  { id: 'logic', label: '邏輯能力測驗', mail: '邏輯能力測驗', file: 'logic-assessment-sb.html', date: true },
+  { id: 'ai', label: 'AI 能力測驗', mail: 'AI能力測驗', file: 'ai-assessment-sb.html', date: true },
+  { id: 'english', label: '英文能力測驗', mail: '英文能力測驗', file: 'english-assessment-sb.html', date: true }
 ];
 var mailInited = false, mailTouched = false;
 function initMail() {
@@ -1169,10 +1179,16 @@ function mailLink(it, p) {
   if (it.date && p.date) u += '&date=' + encodeURIComponent(p.date);      // 面談日期只有四個測驗頁有欄位
   return u;
 }
-function mailDateText(iso) {
+function mailDateText(iso) {                                    // 例：2026年11月10日（二）
   var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); if (!m) return '';
   var d = new Date(+m[1], +m[2] - 1, +m[3]);
-  return m[1] + '年' + (+m[2]) + '月' + (+m[3]) + '日（星期' + '日一二三四五六'.charAt(d.getDay()) + '）';
+  return m[1] + '年' + (+m[2]) + '月' + (+m[3]) + '日（' + '日一二三四五六'.charAt(d.getDay()) + '）';
+}
+function mailTimeText(hhmm) { return (+hhmm.slice(0, 2) < 12 ? '上午' : '下午') + hhmm; }     // 例：下午16:10（時間仍是 24 小時制）
+function mailHon() { var r = document.querySelector('input[name="mail-hon"]:checked'); return r ? r.value : ''; }
+function mailHonChanged() {
+  document.querySelectorAll('#mail-hon label').forEach(function (l) { l.classList.toggle('on', l.querySelector('input').checked); });
+  mailChanged();
 }
 function mailTimeVal() { var h = $('mail-hh').value, m = $('mail-mm').value; return h !== '' && m !== '' ? h + ':' + m : ''; }     // 24 小時制 HH:MM
 function mailHourPicked() { if ($('mail-hh').value !== '' && $('mail-mm').value === '') $('mail-mm').value = '00'; mailChanged(); }   // 選了「時」，「分」先帶 00
@@ -1197,36 +1213,32 @@ function buildMail() {
   if (mode === 'onsite' && !place) missing.push('面談地點');
   if (mode === 'video' && !vlink) missing.push('視訊連結');
   if (missing.length) return { subject: '', body: '', hint: '請先填寫必填欄位：' + missing.join('、') + '。' };
-  if (mode === 'video' && !/^https?:\/\/\S+$/i.test(vlink)) return { subject: '', body: '', hint: '視訊連結需是以 http:// 或 https:// 開頭的網址。' };
   if (!picked.length) return { subject: '', body: '', hint: '請至少勾選一個項目。' };
   var L = [];
-  L.push(p.name + ' 您好：', '');
-  L.push('我們已為您安排面談。下方為面談資訊 :', '');
-  if (p.job) L.push('面談職務：' + p.job);
-  L.push('面談日期：' + mailDateText(p.date));
-  L.push('面談時間：' + p.time);
-  L.push('面談方式：' + (mode === 'video' ? '視訊面談' : '現場面談'));
-  L.push(mode === 'video' ? '視訊連結：' + vlink : '面談地點：' + place, '');
-  L.push('請您於面談前完成下列項目。點選連結即可開始填寫：', '');
-  picked.forEach(function (it, i) {
-    L.push((i + 1) + '. ' + it.label, mailLink(it, p), '');
-  });
-  L.push('期待與您見面，如有任何問題歡迎隨時來信或來電。', '');
-  L.push('敬祝 順心', '敦新科技股份有限公司 人資營運處 敬上');
-  return { subject: '【敦新科技】面談通知－' + p.name, body: L.join('\n'), hint: '' };
+  L.push('您好,', '誠摯邀請您參加本次面談。', '');
+  L.push(mode === 'video' ? '以下為面談時間與連結：' : '以下為面談時間與地點：');
+  L.push('•時間：' + mailDateText(p.date) + mailTimeText(p.time));                       // 時間直接接在日期後面，不分行
+  if (mode === 'video') L.push('•視訊連結：' + vlink);                                    // 視訊連結格式不限制
+  else L.push('•地點：' + place + (place === MAIL_DEFAULT_PLACE ? ' (當日您抵達時可直接搭電梯上9樓，出電梯後右轉至櫃檯報到，將會有同仁接待您)' : ''));
+  L.push('', '以下為公司的資料表與測驗，為利後續面談流程進行，煩請協助完成填寫，謝謝~');
+  picked.forEach(function (it) { L.push('•' + it.mail); });                              // 內文只顯示名稱，連結在複製時才放進名稱裡（見 mailHtml／mailPlain）
+  L.push('', '如有任何問題歡迎隨時來信或來電。', '', '敬祝 順心', '敦新科技股份有限公司 人資營運處 敬上');
+  return { subject: '【敦新科技】致' + p.name + mailHon() + '_面談前資料填寫邀約', body: L.join('\n'), hint: '' };
 }
-var MAIL_DEFAULT_PLACE = '臺北市中山區民生東路三段49號9樓';
+var MAIL_DEFAULT_PLACE = '台北市中山區民生東路三段49號9樓';
 function mailRegen() {
   mailTouched = false;
   var r = buildMail();
   $('mail-subject').value = r.subject; $('mail-body').value = r.body;
-  $('mail-hint').textContent = r.hint || '連結已帶入姓名' + ($('mail-phone').value.trim() ? '、電話' : '') + ($('mail-job').value.trim() ? '、應徵職務' : '') + '與面談日期（個人資料表沒有面談日期欄位，只帶其他資料）。內文可以直接修改（修改後再改上方資料不會覆蓋內文；要重新開始請按「清空欄位」）。複製後貼到您的信箱寄出即可，本頁不會自動寄信。';
+  $('mail-hint').textContent = r.hint || '連結已帶入姓名' + ($('mail-phone').value.trim() ? '、電話' : '') + ($('mail-job').value.trim() ? '、應徵職務' : '') + '與面談日期（個人資料表沒有面談日期欄位，只帶其他資料）。網址隱藏在各項目名稱裡，按「複製內文」貼到信箱後，名稱就是可點的連結（貼到純文字欄位則會變成「名稱：網址」）。內文可以直接修改（修改後再改上方資料不會覆蓋內文；要重新開始請按「清空欄位」）。複製後貼到您的信箱寄出即可，本頁不會自動寄信。';
 }
 // 清空所有欄位，回到剛開啟頁面的狀態（面談方式回到「現場面談」、面談地點回到預設地址、項目全部勾選）
 function mailClear() {
   ['mail-name', 'mail-phone', 'mail-job', 'mail-date', 'mail-hh', 'mail-mm', 'mail-vlink', 'mail-subject', 'mail-body'].forEach(function (id) { $(id).value = ''; });
   $('mail-place').value = MAIL_DEFAULT_PLACE;
   document.querySelector('input[name="mail-mode"][value="onsite"]').checked = true;
+  document.querySelectorAll('input[name="mail-hon"]').forEach(function (c) { c.checked = false; });
+  document.querySelectorAll('#mail-hon label').forEach(function (l) { l.classList.remove('on'); });
   document.querySelectorAll('#mail-items input').forEach(function (c) { c.checked = true; c.parentNode.classList.add('on'); });
   mailTouched = false;
   mailModeChanged();                                          // 同時切回「面談地點」欄位並重新產生（必填欄位未填，內文是空的）
@@ -1236,9 +1248,24 @@ function mailEdited() { mailTouched = true; }
 // 內文用「微軟正黑體」顯示；複製時同時放入純文字與 HTML（HTML 內指定微軟正黑體、網址轉成連結），
 // 貼到 Outlook、Gmail 等信件編輯器時會保留字型與連結，貼到純文字欄位則是一般文字。
 var MAIL_FONT = "'Microsoft JhengHei','微軟正黑體',sans-serif";
+// 內文裡的「•公司制式資料表」等項目名稱，複製時依目前填寫的姓名、電話、應徵職務、面談日期換成連結：
+// HTML 版把連結藏在名稱上（名稱可點）；純文字版沒有地方藏連結，改成「•名稱：網址」。
+function mailLinkMap() {
+  var one = function (id) { return $(id).value.replace(/\s+/g, ' ').trim(); };
+  var p = { name: one('mail-name'), phone: one('mail-phone'), job: one('mail-job'), date: $('mail-date').value }, m = {};
+  MAIL_ITEMS.forEach(function (it) { m['•' + it.mail] = mailLink(it, p); });
+  return m;
+}
+function mailPlain(text) {
+  var m = mailLinkMap();
+  return text.split('\n').map(function (l) { var k = l.replace(/\s+$/, ''); return m[k] ? k + '：' + m[k] : l; }).join('\n');
+}
 function mailHtml(text) {
   var e = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var m = mailLinkMap();
   var lines = text.split('\n').map(function (l) {
+    var k = l.replace(/\s+$/, '');
+    if (m[k]) return '•<a href="' + e(m[k]).replace(/"/g, '&quot;') + '">' + e(k.slice(1)) + '</a>';
     return e(l).replace(/(https?:\/\/[^\s<]+)/g, function (u) { return '<a href="' + u + '">' + u + '</a>'; });
   });
   return '<div style="font-family:' + MAIL_FONT + ';font-size:11pt;line-height:1.7">' + lines.join('<br>') + '</div>';
@@ -1248,10 +1275,11 @@ function copyMail(id, btn) {
   if (!text) { showToast('請先填寫必填欄位並勾選項目', 'error'); return; }
   var done = function () { showToast(id === 'mail-body' ? '已複製內文' : '已複製主旨', 'success'); };
   var fallback = function () { el.focus(); el.select(); try { document.execCommand('copy') ? done() : showToast('複製失敗，請手動選取複製', 'error'); } catch (e) { showToast('複製失敗，請手動選取複製', 'error'); } };
-  var plain = function () { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback(); };
+  var ptext = id === 'mail-body' ? mailPlain(text) : text;                 // 純文字版：項目名稱後面補上網址
+  var plain = function () { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ptext).then(done, fallback); else fallback(); };
   if (id === 'mail-body' && navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
     try {
-      navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([mailHtml(text)], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]).then(done, plain);
+      navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([mailHtml(text)], { type: 'text/html' }), 'text/plain': new Blob([ptext], { type: 'text/plain' }) })]).then(done, plain);
       return;
     } catch (e) { /* 不支援時改用純文字 */ }
   }
