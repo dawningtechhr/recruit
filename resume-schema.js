@@ -26,7 +26,7 @@
         F('basic.name_zh', '中文姓名', 'text', { req: 1 }),
         F('basic.name_en', '英文名', 'text', { req: 1 }),
         F('basic.passport', '護照全名'),
-        F('basic.id_no', '身份證字號', 'text', { upper: 1, max: 12 }),
+        F('basic.id_no', '身份證字號', 'text', { upper: 1, max: 12, onsite: 1, dl: '身份證字號(至現場填寫)' }),     // onsite：求職者頁面不可填寫（至現場填寫）；後台編輯仍可輸入
         F('basic.birth', '出生日期（西元）', 'date'),
         F('basic.gender', '性別', 'select', { req: 1, opts: ['男', '女'] }),
         F('basic.marital', '婚姻', 'select', { req: 1, opts: ['單身', '已婚'] }),
@@ -297,7 +297,7 @@
         '</tr></table>';
     }
     sections.forEach(function (s) {
-      var body = '';
+      var body = '', keepAll = s.id === 'basic';
       s.blocks.forEach(function (b) {
         if (b.t === 'consent') {
           var cp = 'font-size:' + FS + ';margin:' + (c ? '1px 0' : '3px 0') + ';line-height:' + (o.lh || '1.5');
@@ -314,9 +314,11 @@
           var items = [];
           b.fields.forEach(function (f) {
             if (f.type === 'photo' || f.hidden) return;
-            var v = f.blank ? '' : showVal(f, d[f.k] || '');       // 標記為留白的欄位（簽章、簽章日期）一律顯示空白，不論資料庫裡有沒有舊值
-            if (v === '' && !f.req && !f.show) return;
-            items.push({ l: f.vl || f.l, v: v === '' ? (f.blank ? '' : '—') : v, tall: !!f.tall, wide: f.wide && (f.type === 'text' || f.type === 'area' || f.type === 'radio') });
+            if (b.eq && /\.note$/.test(f.k)) return;                 // 信用資料／關係人：「－說明」併入上一列，不另外成列
+            var v = f.blank ? '' : showVal(f, d[f.k] || '');
+            if (b.eq && f.type === 'radio' && v === '有' && d[f.k + '.note']) v = '有, ' + d[f.k + '.note'];     // 例如「有, 說明內容」       // 標記為留白的欄位（簽章、簽章日期）一律顯示空白，不論資料庫裡有沒有舊值
+            if (v === '' && !keepAll && !f.show) return;           // 「基本資料」不論有沒有填都保留欄位（空格留給現場填寫）；其他區域只顯示已填寫的欄位
+            items.push({ l: f.vl || f.l, v: v === '' ? ((f.blank || keepAll) ? '' : '—') : v, tall: !!f.tall, wide: f.wide && (f.type === 'text' || f.type === 'area' || f.type === 'radio') });
           });
           if (b.sub) body += '<p style="' + SUB + '">' + esc(b.sub) + '</p>';
           if (items.length) body += b.eq ? eqTable(items) : pairsTable(items);
@@ -360,8 +362,9 @@
 
   /* ── 表單 HTML 產生器（求職者填寫頁、後台「編輯」共用）──
      opts.skip：要略過的區段 id（後台編輯時略過 'decl' 聲明書）；opts.consentHTML：聲明書全文 */
+  var formEditing = false;               // formHTML 有帶 data（後台編輯）時為 true：onsite 欄位在後台可輸入，求職者頁面則不可填寫
   function ctl(name, f) {
-    var a = (f.ro ? ' readonly' : '') + (f.dis ? ' disabled' : '');
+    var a = (f.ro ? ' readonly' : '') + (f.dis || (f.onsite && !formEditing) ? ' disabled' : '');
     if (f.type === 'select')
       return '<select name="' + name + '"><option value="">請選擇</option>' + f.opts.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>';
     if (f.type === 'radio')
@@ -412,6 +415,7 @@
   }
   function formHTML(opts) {
     opts = opts || {};
+    formEditing = !!opts.data;
     var skip = opts.skip || [], h = '';
     sections.forEach(function (s) {
       if (skip.indexOf(s.id) >= 0) return;
